@@ -19,27 +19,25 @@ service cloud.firestore {
            && data.societyFocus is list && data.societyFocus.size() <= 20 && (data.societyFocus.size() == 0 || data.societyFocus[0] is string)
            && data.region is string && data.region.size() <= 100
            && data.notificationTime is string && data.notificationTime.size() <= 10
-           && data.notificationStyle is string && data.notificationStyle.size() <= 50
-           && (!('createdAt' in data) || data.createdAt == request.time)
-           && (!('updatedAt' in data) || data.updatedAt == request.time);
+           && data.notificationStyle is string && data.notificationStyle.size() <= 50;
     }
 
     match /users/{userId} {
-      allow get: if isSignedIn() && request.auth.uid == userId;
-      allow list: if isSignedIn() && request.auth.uid == userId && resource.id == request.auth.uid;
+      allow get, list: if isSignedIn() && request.auth.uid == userId;
 
       allow create: if isSignedIn()
                     && request.auth.uid == userId
                     && isValidId(userId)
                     && incoming().keys().hasAll(['name', 'jobIndustry', 'favoriteSports', 'entertainmentInterests', 'societyFocus', 'region', 'notificationTime', 'notificationStyle', 'createdAt'])
-                    && incoming().keys().size() == 9
+                    && incoming().createdAt == request.time
                     && isValidUserPreferences(incoming());
 
       allow update: if isSignedIn()
                     && request.auth.uid == userId
                     && isValidId(userId)
-                    && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'jobIndustry', 'favoriteSports', 'entertainmentInterests', 'societyFocus', 'region', 'notificationTime', 'notificationStyle', 'updatedAt'])
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'jobIndustry', 'favoriteSports', 'entertainmentInterests', 'societyFocus', 'region', 'notificationTime', 'notificationStyle', 'updatedAt', 'createdAt'])
                     && incoming().createdAt == existing().createdAt
+                    && (!('updatedAt' in incoming()) || incoming().updatedAt == request.time)
                     && isValidUserPreferences(incoming());
 
       allow delete: if false;

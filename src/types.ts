@@ -1,6 +1,6 @@
 export type Category = 'Job' | 'Sports' | 'Entertainment' | 'Society' | 'Geopolitics';
 
-export type NotificationStyle = 'Bullets' | 'Narrative' | 'Data-driven';
+export type NotificationStyle = 'Bullets' | 'Narrative' | 'Data-driven' | 'Executive';
 
 export interface UserPreferences {
   name: string;

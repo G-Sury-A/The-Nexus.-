@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { generateBriefing } from './services/newsService';
 import { useAuth } from './components/AuthContext';
 import { getUserPreferences, saveUserPreferences } from './services/userService';
-import { Shield, Sparkles, BrainCircuit, ArrowRight } from 'lucide-react';
+import { Shield, Sparkles, BrainCircuit, ArrowRight, X } from 'lucide-react';
 
 export default function App() {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
@@ -83,9 +83,13 @@ export default function App() {
     } catch(err: any) {
       console.error("Generation error:", err);
       // More descriptive error
-      setError(err.message?.includes('Failed to fetch')
-        ? "Unable to reach the Nexus server. Please check your internet connection."
-        : "The Nexus Algorithm encountered an issue while correlating your briefing.");
+      if (err.message?.includes('Database error') && err.message?.includes('permission-denied')) {
+        setError("Access Denied. It seems you're trying to update an existing profile with inconsistent data. Try refreshing or logging in again.");
+      } else if (err.message?.includes('Failed to fetch')) {
+        setError("Unable to reach the Nexus server. Please check your internet connection.");
+      } else {
+        setError("The Nexus Algorithm encountered an issue while correlating your briefing.");
+      }
     } finally {
       setIsGenerating(false);
     }
