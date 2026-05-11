@@ -12,6 +12,7 @@ export default function App() {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [briefing, setBriefing] = useState<DailyBriefing | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const [showAuthPopup, setShowAuthPopup] = useState(false);
   const [pendingPrefs, setPendingPrefs] = useState<UserPreferences | null>(null);
@@ -35,19 +36,15 @@ export default function App() {
 
     async function loadUserPrefs() {
       if (user) {
-        const prefs = await getUserPreferences(user.uid);
-        if (prefs) {
-          setPreferences(prefs);
-          
-          setIsGenerating(true);
-          try {
-            const data = await generateBriefing(prefs);
-            setBriefing(data);
-          } catch(err) {
-             console.error("error making brief", err);
-          } finally {
-            setIsGenerating(false);
+        try {
+          const prefs = await getUserPreferences(user.uid);
+          if (prefs) {
+            setPreferences(prefs);
+            await generate(prefs);
           }
+        } catch (err: any) {
+          console.error("Error loading user preferences:", err);
+          setError("Failed to load your profile. Please try again.");
         }
       }
       setInitialFetchDone(true);
@@ -59,10 +56,18 @@ export default function App() {
   }, [user, loading]);
 
   const handleCompleteOnboarding = async (prefs: UserPreferences) => {
+    setError(null);
     if (user) {
       setPreferences(prefs);
-      await saveUserPreferences(user.uid, prefs, true);
-      generate(prefs);
+      try {
+        await saveUserPreferences(user.uid, prefs, true);
+        await generate(prefs);
+      } catch (err: any) {
+        console.error("Error saving preferences:", err);
+        setError("Failed to save your preferences. You can still use the app as a guest for now.");
+        // Fallback to guest-like behavior so they can at least see the briefing
+        await generate(prefs);
+      }
     } else {
       setPendingPrefs(prefs);
       setShowAuthPopup(true);
@@ -71,11 +76,16 @@ export default function App() {
 
   const generate = async (prefs: UserPreferences) => {
     setIsGenerating(true);
+    setError(null);
     try {
       const data = await generateBriefing(prefs);
       setBriefing(data);
-    } catch(err) {
-      console.error(err);
+    } catch(err: any) {
+      console.error("Generation error:", err);
+      // More descriptive error
+      setError(err.message?.includes('Failed to fetch')
+        ? "Unable to reach the Nexus server. Please check your internet connection."
+        : "The Nexus Algorithm encountered an issue while correlating your briefing.");
     } finally {
       setIsGenerating(false);
     }
@@ -83,6 +93,7 @@ export default function App() {
 
   const handleLogin = async () => {
     if (!pendingPrefs) return;
+    setError(null);
     try {
       // Save pending prefs in case of redirect
       localStorage.setItem('pending_nexus_prefs', JSON.stringify(pendingPrefs));
@@ -91,12 +102,18 @@ export default function App() {
       if (loggedUser) {
         setShowAuthPopup(false);
         setPreferences(pendingPrefs);
-        await saveUserPreferences(loggedUser.uid, pendingPrefs, true);
-        generate(pendingPrefs);
+        try {
+          await saveUserPreferences(loggedUser.uid, pendingPrefs, true);
+        } catch (err) {
+          console.error("Failed to save preferences after login:", err);
+          // We don't block the user if saving fails, but we might want to show a warning
+        }
+        await generate(pendingPrefs);
         localStorage.removeItem('pending_nexus_prefs');
       }
     } catch (e) {
-      console.error("Login canceled", e);
+      console.error("Login failed", e);
+      setError("Login failed. Please try again or continue as a guest.");
     }
   };
 
@@ -122,7 +139,7 @@ export default function App() {
           <motion.div key="onboarding" exit={{ opacity: 0 }}>
             <Onboarding onComplete={handleCompleteOnboarding} />
           </motion.div>
-        ) : isGenerating ? (
+        ) : (isGenerating || (preferences && !briefing && !error)) ? (
           <motion.div 
             key="generating"
             initial={{ opacity: 0 }}
@@ -136,6 +153,36 @@ export default function App() {
             </div>
             <p className="text-xl font-light text-zinc-300 animate-pulse">Curating your personalized Nexus Web...</p>
             <p className="text-sm text-zinc-500">Algorithmically correlating Geopolitics to {preferences?.jobIndustry || pendingPrefs?.jobIndustry} and local matters...</p>
+          </motion.div>
+        ) : error ? (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center min-h-screen p-6 text-center"
+          >
+            <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 border border-red-500/20">
+              <X className="w-8 h-8 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Something went wrong</h2>
+            <p className="text-zinc-400 max-w-md mb-8">{error}</p>
+            <button
+              onClick={() => preferences ? generate(preferences) : (pendingPrefs ? generate(pendingPrefs) : window.location.reload())}
+              className="bg-white text-black px-8 py-3 rounded-xl font-medium hover:bg-zinc-200 transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => {
+                setError(null);
+                setPreferences(null);
+                setBriefing(null);
+                setShowAuthPopup(false);
+              }}
+              className="mt-4 text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              Back to Start
+            </button>
           </motion.div>
         ) : briefing ? (
           <motion.div 
@@ -151,6 +198,7 @@ export default function App() {
                 else {
                   setPreferences(null);
                   setBriefing(null);
+                  setError(null);
                 }
               }} 
             />

@@ -44,5 +44,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  // Throw a more user-friendly error message that still contains the info
+  const userMessage = `Database error during ${operationType} at ${path || 'unknown'}: ${errInfo.error}`;
+  throw new Error(userMessage);
 }
