@@ -82,7 +82,7 @@ export async function generateNexusBriefing(userPrefs: any) {
   }
 
   // Tokenize user preferences
-  const personaString = `${userPrefs.jobIndustry} ${userPrefs.societyFocus} ${userPrefs.entertainmentVibe} ${userPrefs.region} ${userPrefs.tone}`;
+  const personaString = `${userPrefs.jobIndustry} ${userPrefs.societyFocus} ${userPrefs.entertainmentInterests} ${userPrefs.region} ${userPrefs.notificationStyle}`;
   const prefTokens = new Set([...tokenize(personaString), ...extractEntities(personaString)]);
 
   const chainOrder = ['Geopolitics', 'Job & Industry', 'Society', 'Entertainment', 'Sports'];
@@ -104,7 +104,7 @@ export async function generateNexusBriefing(userPrefs: any) {
          bullets: ['System offline', 'Awaiting next cron sync at 3 AM'],
          dataPoints: [],
          causalLinkToNext: null,
-         style: userPrefs.tone
+         style: userPrefs.notificationStyle
       });
       continue;
     }
