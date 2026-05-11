@@ -20,6 +20,19 @@ export default function App() {
   const [initialFetchDone, setInitialFetchDone] = useState(false);
 
   useEffect(() => {
+    // Check if we have pending prefs from a redirect login
+    const savedPendingPrefs = localStorage.getItem('pending_nexus_prefs');
+    if (savedPendingPrefs && user) {
+      const prefs = JSON.parse(savedPendingPrefs);
+      setPreferences(prefs);
+      saveUserPreferences(user.uid, prefs, true);
+      generate(prefs);
+      localStorage.removeItem('pending_nexus_prefs');
+      setShowAuthPopup(false);
+      setInitialFetchDone(true);
+      return;
+    }
+
     async function loadUserPrefs() {
       if (user) {
         const prefs = await getUserPreferences(user.uid);
@@ -71,12 +84,16 @@ export default function App() {
   const handleLogin = async () => {
     if (!pendingPrefs) return;
     try {
+      // Save pending prefs in case of redirect
+      localStorage.setItem('pending_nexus_prefs', JSON.stringify(pendingPrefs));
+
       const loggedUser = await login();
       if (loggedUser) {
         setShowAuthPopup(false);
         setPreferences(pendingPrefs);
         await saveUserPreferences(loggedUser.uid, pendingPrefs, true);
         generate(pendingPrefs);
+        localStorage.removeItem('pending_nexus_prefs');
       }
     } catch (e) {
       console.error("Login canceled", e);
