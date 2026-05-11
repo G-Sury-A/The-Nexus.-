@@ -20,8 +20,15 @@ export interface NewsNode {
   summary: string;
   bullets: string[];
   dataPoints: string[];
-  causalLinkToNext?: string;
+  causalLinkToNext?: string | null;
   icon: string;
+  style?: string;
+  sourceUrl?: string;
+  topArticles?: {
+    title: string;
+    summary: string;
+    link: string;
+  }[];
 }
 
 export interface DailyBriefing {

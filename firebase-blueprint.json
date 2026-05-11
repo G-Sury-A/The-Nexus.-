@@ -1,0 +1,37 @@
+{
+  "entities": {
+    "UserPreferences": {
+      "title": "User Preferences",
+      "description": "User profile and news preferences",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "jobIndustry": { "type": "string" },
+        "favoriteSports": { "type": "array", "items": { "type": "string" } },
+        "entertainmentInterests": { "type": "array", "items": { "type": "string" } },
+        "societyFocus": { "type": "array", "items": { "type": "string" } },
+        "region": { "type": "string" },
+        "notificationTime": { "type": "string" },
+        "notificationStyle": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": [
+        "name", 
+        "jobIndustry", 
+        "favoriteSports", 
+        "entertainmentInterests", 
+        "societyFocus", 
+        "region", 
+        "notificationTime", 
+        "notificationStyle"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPreferences" },
+      "description": "User profiles and preferences"
+    }
+  }
+}

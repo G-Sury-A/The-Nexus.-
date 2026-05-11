@@ -10,6 +10,7 @@ interface NexusWebProps {
 
 const icons: Record<string, any> = {
   Job: Briefcase,
+  'Job & Industry': Briefcase,
   Sports: Trophy,
   Entertainment: Film,
   Society: Users,
@@ -172,7 +173,7 @@ export function NexusWeb({ briefing, prefs }: NexusWebProps) {
 
       {/* Surrounding Nodes */}
       {nodes.map((node, i) => {
-        const Icon = icons[node.category];
+        const Icon = icons[node.category] || Globe2;
         const active = isNodeActive(i);
         const isSelected = selectedNode === i;
 
@@ -232,19 +233,21 @@ export function NexusWeb({ briefing, prefs }: NexusWebProps) {
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-80" />
 
             {/* Incoming Connection Context */}
-            <div className="text-xs sm:text-sm text-zinc-400 mb-5 pb-5 border-b border-zinc-800/80 flex flex-col sm:flex-row sm:items-center">
-               <div className="flex items-center space-x-2 text-purple-400 font-medium mb-1 sm:mb-0 mr-4 shrink-0">
-                 <icons.Geopolitics className="w-4 h-4" /> {/* Generic link icon visual, could use dynamic */}
-                 <span>Driven by {prevNodeData.category}:</span>
-               </div>
-               <span className="text-zinc-300 italic flex-grow">"{prevNodeData.causalLinkToNext}"</span>
-            </div>
+            {prevNodeData?.causalLinkToNext && (
+              <div className="text-xs sm:text-sm text-zinc-400 mb-5 pb-5 border-b border-zinc-800/80 flex flex-col sm:flex-row sm:items-center">
+                 <div className={`flex items-center space-x-2 font-medium mb-1 sm:mb-0 mr-4 shrink-0 ${prevNodeData.causalLinkToNext.startsWith('Low') ? 'text-zinc-500' : 'text-purple-400'}`}>
+                   <icons.Geopolitics className="w-4 h-4" /> {/* Generic link icon visual, could use dynamic */}
+                   <span>Connection to {prevNodeData.category}:</span>
+                 </div>
+                 <span className={`${prevNodeData.causalLinkToNext.startsWith('Low') ? 'text-zinc-500' : 'text-zinc-300'} italic flex-grow`}>"{prevNodeData.causalLinkToNext}"</span>
+              </div>
+            )}
 
             {/* Primary Content */}
             <div className="mb-6 flex space-x-4">
               <div className="hidden sm:flex mt-1 shrink-0 w-12 h-12 bg-blue-500/10 rounded-full border border-blue-500/20 items-center justify-center text-blue-400">
                 {(() => {
-                  const ActiveIcon = icons[activeNodeData.category];
+                  const ActiveIcon = icons[activeNodeData.category] || Globe2;
                   return <ActiveIcon className="w-6 h-6" />;
                 })()}
               </div>

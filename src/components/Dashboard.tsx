@@ -12,6 +12,7 @@ interface DashboardProps {
 
 const icons: Record<string, any> = {
   Job: Briefcase,
+  'Job & Industry': Briefcase,
   Sports: Trophy,
   Entertainment: Film,
   Society: Users,
@@ -111,7 +112,7 @@ export function Dashboard({ prefs, briefing, onReset }: DashboardProps) {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-gradient-to-tr from-blue-500/10 via-purple-500/10 to-pink-500/10 blur-[100px] pointer-events-none rounded-full" />
               
               {briefing.chain.map((node, idx) => {
-                const Icon = icons[node.category];
+                const Icon = icons[node.category] || Globe2;
                 return (
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -201,7 +202,7 @@ export function Dashboard({ prefs, briefing, onReset }: DashboardProps) {
                 <div className="p-8 sm:p-10 relative z-10">
                   <div className="flex items-center space-x-3 mb-6">
                     {(() => {
-                       const Icon = icons[selectedArticle.category];
+                       const Icon = icons[selectedArticle.category] || Globe2;
                        return (
                          <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
                            <Icon className="w-6 h-6" />
@@ -221,6 +222,27 @@ export function Dashboard({ prefs, briefing, onReset }: DashboardProps) {
                     <p className="text-lg leading-relaxed text-zinc-300 mb-8 font-light">
                       {selectedArticle.summary}
                     </p>
+                    
+                    {selectedArticle.topArticles && selectedArticle.topArticles.length > 0 && (
+                      <div className="mb-8 p-6 bg-zinc-900/50 rounded-2xl border border-zinc-800/80">
+                        <h4 className="text-sm uppercase font-mono text-zinc-400 mb-5 tracking-widest">Included Articles</h4>
+                        <div className="space-y-5">
+                          {selectedArticle.topArticles.map((article, i) => (
+                            <div key={i} className="border-l-2 border-zinc-800 pl-4 py-1">
+                              <a 
+                                href={article.link} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:text-blue-300 hover:underline font-medium text-base mb-1 block"
+                              >
+                                {article.title}
+                              </a>
+                              <p className="text-zinc-500 text-sm line-clamp-2">{article.summary}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                       <div className="bg-black/40 rounded-2xl p-5 border border-zinc-800/60">

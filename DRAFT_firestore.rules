@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} { allow read, write: if false; }
+
+    function isValidId(id) {
+       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+
+    function isValidUserPreferences(data) {
+       return data.name is string && data.name.size() <= 200
+           && data.jobIndustry is string && data.jobIndustry.size() <= 100
+           && data.favoriteSports is list && data.favoriteSports.size() <= 20 && (data.favoriteSports.size() == 0 || data.favoriteSports[0] is string)
+           && data.entertainmentInterests is list && data.entertainmentInterests.size() <= 20 && (data.entertainmentInterests.size() == 0 || data.entertainmentInterests[0] is string)
+           && data.societyFocus is list && data.societyFocus.size() <= 20 && (data.societyFocus.size() == 0 || data.societyFocus[0] is string)
+           && data.region is string && data.region.size() <= 100
+           && data.notificationTime is string && data.notificationTime.size() <= 10
+           && data.notificationStyle is string && data.notificationStyle.size() <= 50
+           && (!('createdAt' in data) || data.createdAt == request.time)
+           && (!('updatedAt' in data) || data.updatedAt == request.time);
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow list: if isSignedIn() && request.auth.uid == userId && resource.id == request.auth.uid; // Client logic won't be able to query this without matching auth.uid
+
+      allow create: if isSignedIn()
+                    && request.auth.uid == userId
+                    && isValidId(userId)
+                    && incoming().keys().hasAll(['name', 'jobIndustry', 'favoriteSports', 'entertainmentInterests', 'societyFocus', 'region', 'notificationTime', 'notificationStyle', 'createdAt'])
+                    && incoming().keys().size() == 9
+                    && isValidUserPreferences(incoming());
+
+      allow update: if isSignedIn()
+                    && request.auth.uid == userId
+                    && isValidId(userId)
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'jobIndustry', 'favoriteSports', 'entertainmentInterests', 'societyFocus', 'region', 'notificationTime', 'notificationStyle', 'updatedAt'])
+                    && incoming().createdAt == existing().createdAt
+                    && isValidUserPreferences(incoming());
+
+      allow delete: if false;
+    }
+  }
+}

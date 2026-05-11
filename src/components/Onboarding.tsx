@@ -30,10 +30,14 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     notificationStyle: 'Bullets'
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const nextStep = () => {
     if (stepIndex < STEPS.length - 1) {
       setStepIndex(s => s + 1);
     } else {
+      if (isSubmitting) return;
+      setIsSubmitting(true);
       onComplete(prefs);
     }
   };
@@ -236,10 +240,10 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           <div className="flex justify-end pt-4 border-t border-zinc-800">
             <button
               onClick={nextStep}
-              disabled={!isStepValid()}
+              disabled={!isStepValid() || isSubmitting}
               className="bg-white text-black px-6 py-3 rounded-lg font-medium hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
             >
-              <span>{stepIndex === STEPS.length - 1 ? 'Curate My World' : 'Next'}</span>
+              <span>{isSubmitting ? 'Saving...' : stepIndex === STEPS.length - 1 ? 'Curate My World' : 'Next'}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
