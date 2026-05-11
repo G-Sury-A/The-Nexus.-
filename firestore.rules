@@ -8,7 +8,7 @@ service cloud.firestore {
     }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-    function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function isSignedIn() { return request.auth != null; }
 
     function isValidUserPreferences(data) {
        return data.keys().hasAll(['name', 'jobIndustry', 'favoriteSports', 'entertainmentInterests', 'societyFocus', 'region', 'notificationTime', 'notificationStyle'])
