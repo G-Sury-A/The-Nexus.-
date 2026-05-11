@@ -1,38 +1,14 @@
 import { globalCorpus, RawArticle, fetchAllFeeds } from './fetcher.js';
-import nlp from 'compromise';
-
-// Basic list of stop words to filter out grammatical glue
-const STOP_WORDS = new Set([
-  'the', 'is', 'at', 'which', 'on', 'in', 'and', 'a', 'an', 'to', 'for', 'of', 'with', 'by', 'as', 'it', 'that', 'this', 'from', 'but', 'not', 'or', 'are', 'be', 'has', 'have', 'was', 'were', 'will', 'would', 'can', 'could', 'should', 'their', 'they', 'we', 'our', 'what', 'who', 'when', 'where', 'how', 'why', 'its', 'about', 'more', 'new', 'after', 'also', 'over', 'into', 'out', 'up', 'down', 'been', 'some', 'says', 'said', 'all', 'there', 'one', 'two', 'than', 'while'
-]);
-
-function tokenize(text: string): string[] {
-  // Lowercase, remove punctuation, split by space
-  const words = text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
-  return words.filter(w => w.length > 3 && !STOP_WORDS.has(w));
-}
-
-function extractEntities(text: string): string[] {
-  const doc = nlp(text);
-  // Extract proper nouns, people, places, organizations
-  const topics = doc.topics().out('array');
-  const orgs = doc.organizations().out('array');
-  const people = doc.people().out('array');
-  const places = doc.places().out('array');
-  
-  // Combine all entities, normalize to lowercase to improve matching
-  const allEntities = [...topics, ...orgs, ...people, ...places].map(e => e.toLowerCase().trim());
-  return Array.from(new Set(allEntities)).filter(e => e.length > 2);
-}
+import { tokenize, extractEntities } from './nlpUtils.js';
 
 function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commonKeys: string[] } {
-  // Base token affinity
-  const tokensA = new Set(tokenize(a.title + ' ' + a.summary));
-  const tokensB = new Set(tokenize(b.title + ' ' + b.summary));
+  // Base token affinity - use cached if available
+  const tokensA = a.tokens || new Set(tokenize(a.title + ' ' + a.summary));
+  const tokensB = b.tokens || new Set(tokenize(b.title + ' ' + b.summary));
   
-  // Entity affinity (higher weight)
-  const entitiesA = new Set(extractEntities(a.title + ' ' + a.summary));
-  const entitiesB = new Set(extractEntities(b.title + ' ' + b.summary));
+  // Entity affinity (higher weight) - use cached if available
+  const entitiesA = a.entities || new Set(extractEntities(a.title + ' ' + a.summary));
+  const entitiesB = b.entities || new Set(extractEntities(b.title + ' ' + b.summary));
 
   const commonKeys: string[] = [];
   let score = 0;
@@ -60,8 +36,8 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
 
 // Emulate TF-IDF / Persona weighting
 function scoreAgainstPersona(article: RawArticle, prefTokens: Set<string>): number {
-  const tokens = tokenize(article.title + ' ' + article.summary);
-  const entities = extractEntities(article.title + ' ' + article.summary);
+  const tokens = article.tokens || new Set(tokenize(article.title + ' ' + article.summary));
+  const entities = article.entities || new Set(extractEntities(article.title + ' ' + article.summary));
   let score = 0;
   
   tokens.forEach(t => {
@@ -114,11 +90,10 @@ export async function generateNexusBriefing(userPrefs: any) {
 
     // 1. Frequency Analysis: Gather entities from all 50 articles
     const entityFrequency: Record<string, number> = {};
-    const articleEntities: { article: RawArticle; entities: string[]; score: number }[] = [];
+    const articleEntities: { article: RawArticle; entities: Set<string>; score: number }[] = [];
 
     pool.forEach(article => {
-      const text = article.title + ' ' + article.summary;
-      const entities = extractEntities(text);
+      const entities = article.entities || new Set(extractEntities(article.title + ' ' + article.summary));
       const personaScore = scoreAgainstPersona(article, prefTokens);
 
       articleEntities.push({ article, entities, score: personaScore });
@@ -145,7 +120,7 @@ export async function generateNexusBriefing(userPrefs: any) {
     topSubjects.forEach(subject => {
       // Find highest scored article containing this subject
       const matchingArticles = articleEntities
-        .filter(ae => ae.entities.includes(subject) && !usedArticleIds.has(ae.article.id))
+        .filter(ae => ae.entities.has(subject) && !usedArticleIds.has(ae.article.id))
         .sort((a, b) => b.score - a.score);
       
       if (matchingArticles.length > 0) {
@@ -158,7 +133,7 @@ export async function generateNexusBriefing(userPrefs: any) {
     if (topMatches.length === 0 && articleEntities.length > 0) {
        articleEntities.sort((a, b) => b.score - a.score);
        articleEntities.slice(0, 3).forEach(ae => {
-         topMatches.push({ article: ae.article, subject: ae.entities[0] || 'General Update' });
+         topMatches.push({ article: ae.article, subject: Array.from(ae.entities)[0] || 'General Update' });
        });
     }
 

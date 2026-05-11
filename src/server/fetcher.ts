@@ -1,4 +1,5 @@
 import Parser from 'rss-parser';
+import { tokenize, extractEntities } from './nlpUtils.js';
 
 const parser = new Parser();
 
@@ -47,6 +48,8 @@ export interface RawArticle {
   pubDate: string;
   category: string;
   id: string;
+  tokens?: Set<string>;
+  entities?: Set<string>;
 }
 
 // In-memory cache to hold our corpus fetched at 3 AM
@@ -75,13 +78,19 @@ export async function fetchAllFeeds() {
         
         feed.items.forEach(item => {
           if (item.title && item.contentSnippet) {
+            const title = item.title;
+            const summary = stripHtml(item.contentSnippet || item.content || '');
+            const text = title + ' ' + summary;
+
             articles.push({
               id: item.guid || item.link || Math.random().toString(36),
               category,
-              title: item.title,
-              summary: stripHtml(item.contentSnippet || item.content || ''),
+              title,
+              summary,
               link: item.link || '',
-              pubDate: item.pubDate || new Date().toISOString()
+              pubDate: item.pubDate || new Date().toISOString(),
+              tokens: new Set(tokenize(text)),
+              entities: new Set(extractEntities(text))
             });
           }
         });
