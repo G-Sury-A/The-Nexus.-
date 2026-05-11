@@ -218,7 +218,7 @@ export function NexusWeb({ briefing, prefs }: NexusWebProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
             transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-            className="absolute bottom-4 sm:bottom-12 left-1/2 transform -translate-x-1/2 w-[95%] sm:w-[85%] max-w-2xl bg-zinc-950/90 backdrop-blur-xl border border-zinc-700/50 rounded-3xl p-5 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] z-50 overflow-hidden"
+            className="fixed bottom-4 sm:bottom-12 left-1/2 transform -translate-x-1/2 w-[95%] sm:w-[85%] max-w-2xl bg-zinc-950/90 backdrop-blur-xl border border-zinc-700/50 rounded-3xl p-5 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] z-50 overflow-y-auto max-h-[85vh]"
           >
             {/* Close Button */}
             <button 
@@ -234,7 +234,10 @@ export function NexusWeb({ briefing, prefs }: NexusWebProps) {
             {/* Incoming Connection Context */}
             <div className="text-xs sm:text-sm text-zinc-400 mb-5 pb-5 border-b border-zinc-800/80 flex flex-col sm:flex-row sm:items-center">
                <div className="flex items-center space-x-2 text-purple-400 font-medium mb-1 sm:mb-0 mr-4 shrink-0">
-                 <icons.Geopolitics className="w-4 h-4" /> {/* Generic link icon visual, could use dynamic */}
+                 {(() => {
+                   const PrevIcon = icons[prevNodeData.category];
+                   return <PrevIcon className="w-4 h-4" />;
+                 })()}
                  <span>Driven by {prevNodeData.category}:</span>
                </div>
                <span className="text-zinc-300 italic flex-grow">"{prevNodeData.causalLinkToNext}"</span>
