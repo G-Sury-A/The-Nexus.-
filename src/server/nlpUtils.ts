@@ -6,8 +6,8 @@ export const STOP_WORDS = new Set([
 ]);
 
 export function tokenize(text: string): string[] {
-  // Lowercase, remove punctuation, split by space
-  const words = text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
+  // Lowercase, replace punctuation with spaces to avoid smashing words, split by space
+  const words = text.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/);
   return words.filter(w => w.length > 3 && !STOP_WORDS.has(w));
 }
 
