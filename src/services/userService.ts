@@ -24,10 +24,11 @@ export const saveUserPreferences = async (userId: string, prefs: UserPreferences
   try {
     const docRef = doc(db, path);
     if (isNew) {
+      // Use merge: true even for isNew to be safe against cases where the doc exists but was somehow corrupted
       await setDoc(docRef, {
         ...prefs,
         createdAt: serverTimestamp()
-      }, { merge: false });
+      }, { merge: true });
     } else {
       await setDoc(docRef, {
         ...prefs,

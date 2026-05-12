@@ -61,14 +61,22 @@ export const globalCorpus: Record<string, RawArticle[]> = {
   Sports: []
 };
 
+let isFetching = false;
+
 // Strips basic HTML tags from descriptions
 function stripHtml(html: string) {
   return html.replace(/<[^>]*>?/gm, '').trim();
 }
 
 export async function fetchAllFeeds() {
+  if (isFetching) {
+    console.log('[Nexus Fetcher] Fetch already in progress, skipping...');
+    return;
+  }
+  isFetching = true;
   console.log('[Nexus Fetcher] Starting daily RSS corpus fetch...');
-  for (const [category, urls] of Object.entries(CATEGORY_FEEDS)) {
+  try {
+    for (const [category, urls] of Object.entries(CATEGORY_FEEDS)) {
     const articles: RawArticle[] = [];
     
     for (const url of urls) {
@@ -77,9 +85,10 @@ export async function fetchAllFeeds() {
         const feed = await parser.parseURL(url);
         
         feed.items.forEach(item => {
-          if (item.title && item.contentSnippet) {
+          const rawContent = item.contentSnippet || item.content || '';
+          if (item.title && rawContent) {
             const title = item.title;
-            const summary = stripHtml(item.contentSnippet || item.content || '');
+            const summary = stripHtml(rawContent);
             const text = title + ' ' + summary;
 
             articles.push({
@@ -106,4 +115,7 @@ export async function fetchAllFeeds() {
   }
   
   console.log('[Nexus Fetcher] Corpus updated successfully.');
+  } finally {
+    isFetching = false;
+  }
 }

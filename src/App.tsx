@@ -78,38 +78,45 @@ function AppContent() {
   const [initialFetchDone, setInitialFetchDone] = useState(false);
 
   useEffect(() => {
-    // Check if we have pending prefs from a redirect login
-    const savedPendingPrefs = localStorage.getItem('pending_nexus_prefs');
-    if (savedPendingPrefs && user) {
-      const prefs = JSON.parse(savedPendingPrefs);
-      setPreferences(prefs);
-      saveUserPreferences(user.uid, prefs, true);
-      generate(prefs);
-      localStorage.removeItem('pending_nexus_prefs');
-      setShowAuthPopup(false);
-      setInitialFetchDone(true);
-      return;
-    }
+    if (loading) return;
 
-    async function loadUserPrefs() {
+    async function handleAuthTransition() {
+      const savedPendingPrefs = localStorage.getItem('pending_nexus_prefs');
+
       if (user) {
-        try {
-          const prefs = await getUserPreferences(user.uid);
-          if (prefs) {
+        if (savedPendingPrefs) {
+          // Transitioning from redirect login
+          try {
+            const prefs = JSON.parse(savedPendingPrefs);
             setPreferences(prefs);
+            // Use merge: true to avoid issues with createdAt security rules if they exist
+            await saveUserPreferences(user.uid, prefs, true);
             await generate(prefs);
+          } catch (err) {
+            console.error("Error applying pending preferences:", err);
+            setError("We logged you in but couldn't apply your preferences. Please try setting them again.");
+          } finally {
+            localStorage.removeItem('pending_nexus_prefs');
+            setShowAuthPopup(false);
           }
-        } catch (err: any) {
-          console.error("Error loading user preferences:", err);
-          setError("Failed to load your profile. Please try again.");
+        } else {
+          // Normal login, load existing prefs
+          try {
+            const prefs = await getUserPreferences(user.uid);
+            if (prefs) {
+              setPreferences(prefs);
+              await generate(prefs);
+            }
+          } catch (err: any) {
+            console.error("Error loading user preferences:", err);
+            setError("Failed to load your profile. Please try again.");
+          }
         }
       }
       setInitialFetchDone(true);
     }
     
-    if (!loading) {
-       loadUserPrefs();
-    }
+    handleAuthTransition();
   }, [user, loading]);
 
   const handleCompleteOnboarding = async (prefs: UserPreferences) => {

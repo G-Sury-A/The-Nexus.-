@@ -27,8 +27,12 @@ async function startServer() {
       const briefing = await generateNexusBriefing(cleaned);
       res.json(briefing);
     } catch (err: any) {
-      console.error('Error in /api/briefing:', err);
-      res.status(500).json({ error: 'Failed to generate Nexus Briefing.' });
+      console.error('CRITICAL: Error in /api/briefing:', err);
+      res.status(500).json({
+        error: 'Failed to generate Nexus Briefing.',
+        message: err.message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+      });
     }
   });
 
