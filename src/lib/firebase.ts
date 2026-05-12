@@ -13,9 +13,28 @@ const firebaseConfig = {
   firestoreDatabaseId: import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID
 };
 
-const app = initializeApp(firebaseConfig);
+// Validate config presence to avoid opaque crashes
+const missingKeys = Object.entries(firebaseConfig)
+  .filter(([key, value]) => !value && key !== 'measurementId' && key !== 'firestoreDatabaseId')
+  .map(([key]) => key);
+
+if (missingKeys.length > 0) {
+  console.error(`CRITICAL: Firebase configuration is missing the following keys: ${missingKeys.join(', ')}. Check your .env file or Vercel Environment Variables.`);
+}
+
+// Fallback to dummy config if keys are missing to prevent crash in development/preview if not configured
+const finalConfig = missingKeys.length > 0 ? {
+  apiKey: "dummy-key",
+  authDomain: "dummy-project.firebaseapp.com",
+  projectId: "dummy-project",
+  storageBucket: "dummy-project.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
+} : firebaseConfig;
+
+const app = initializeApp(finalConfig);
 // CRITICAL: The app will break without providing firestoreDatabaseId in getFirestore for Enterprise
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || '(default)');
 export const auth = getAuth(app);
 
 const provider = new GoogleAuthProvider();

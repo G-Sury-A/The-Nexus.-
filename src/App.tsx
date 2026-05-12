@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { Onboarding } from './components/Onboarding';
 import { Dashboard } from './components/Dashboard';
 import { UserPreferences, DailyBriefing } from './types';
@@ -8,7 +8,64 @@ import { useAuth } from './components/AuthContext';
 import { getUserPreferences, saveUserPreferences } from './services/userService';
 import { Shield, Sparkles, BrainCircuit, ArrowRight, X } from 'lucide-react';
 
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-black text-white min-h-screen flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 border border-red-500/20">
+            <X className="w-8 h-8 text-red-500" />
+          </div>
+          <h1 className="text-3xl font-bold mb-4 text-white">Application Crash</h1>
+          <p className="text-zinc-400 max-w-md mb-8">
+            The Nexus has encountered a critical runtime error.
+            {this.state.error && <span className="block mt-2 font-mono text-xs text-red-400 bg-red-950/30 p-2 rounded">{this.state.error.message}</span>}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-white text-black px-8 py-3 rounded-xl font-medium hover:bg-zinc-200 transition-colors"
+          >
+            Reload Nexus
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
+}
+
+function AppContent() {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [briefing, setBriefing] = useState<DailyBriefing | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
