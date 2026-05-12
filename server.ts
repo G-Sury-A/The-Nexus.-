@@ -3,6 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { startCronJobs } from './src/server/cron.js';
 import { generateNexusBriefing } from './src/server/nexusAlgorithm.js';
+import { validateUserPreferences } from './src/server/validation.js';
 
 async function startServer() {
   const app = express();
@@ -17,8 +18,13 @@ async function startServer() {
   // Primary API endpoint for generating a personalized briefing
   app.post('/api/briefing', async (req, res) => {
     try {
-      const prefs = req.body;
-      const briefing = await generateNexusBriefing(prefs);
+      const { valid, errors, cleaned } = validateUserPreferences(req.body);
+
+      if (!valid) {
+        return res.status(400).json({ error: 'Invalid preferences provided.', details: errors });
+      }
+
+      const briefing = await generateNexusBriefing(cleaned);
       res.json(briefing);
     } catch (err: any) {
       console.error('Error in /api/briefing:', err);
