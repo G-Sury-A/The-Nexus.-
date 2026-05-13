@@ -152,7 +152,7 @@ function AppContent() {
       } else if (err.message?.includes('Failed to fetch')) {
         setError("Unable to reach the Nexus server. Please check your internet connection.");
       } else {
-        setError("The Nexus Algorithm encountered an issue while correlating your briefing.");
+        setError(`The Nexus Algorithm encountered an issue while correlating your briefing. ${err.message || ''}`);
       }
     } finally {
       setIsGenerating(false);
