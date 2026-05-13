@@ -2,7 +2,7 @@ import Parser from 'rss-parser';
 import sanitizeHtml from 'sanitize-html';
 import { tokenize, extractEntities } from './nlpUtils.js';
 
-const parser = new Parser();
+const parser = new Parser({ timeout: 5000 });
 
 export const CATEGORY_FEEDS: Record<string, string[]> = {
   Geopolitics: [
@@ -72,53 +72,67 @@ function stripHtml(html: string) {
   }).trim();
 }
 
+async function fetchCategory(category: string, urls: string[]): Promise<RawArticle[]> {
+  const categoryArticles: RawArticle[] = [];
+
+  const feedPromises = urls.map(async (url) => {
+    try {
+      console.log(`[Nexus Fetcher] Fetching ${url} for ${category}...`);
+      const feed = await parser.parseURL(url);
+
+      const articles: RawArticle[] = [];
+      feed.items.forEach(item => {
+        const rawContent = item.contentSnippet || item.content || '';
+        if (item.title && rawContent) {
+          const title = item.title;
+          const summary = stripHtml(rawContent);
+          const text = title + ' ' + summary;
+
+          articles.push({
+            id: item.guid || item.link || Math.random().toString(36),
+            category,
+            title,
+            summary,
+            link: item.link || '',
+            pubDate: item.pubDate || new Date().toISOString(),
+            tokens: new Set(tokenize(text)),
+            entities: new Set(extractEntities(text))
+          });
+        }
+      });
+      return articles;
+    } catch (error) {
+      console.error(`[Nexus Fetcher] Failed to fetch feed ${url}:`, error);
+      return [];
+    }
+  });
+
+  const results = await Promise.all(feedPromises);
+  results.forEach(articles => categoryArticles.push(...articles));
+
+  // Sort by publication date, newest first, and keep top 50
+  categoryArticles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+  return categoryArticles.slice(0, 50);
+}
+
 export async function fetchAllFeeds() {
   if (isFetching) {
     console.log('[Nexus Fetcher] Fetch already in progress, skipping...');
     return;
   }
   isFetching = true;
-  console.log('[Nexus Fetcher] Starting daily RSS corpus fetch...');
+  console.log('[Nexus Fetcher] Starting daily RSS corpus fetch (parallel)...');
   try {
-    for (const [category, urls] of Object.entries(CATEGORY_FEEDS)) {
-    const articles: RawArticle[] = [];
-    
-    for (const url of urls) {
-      try {
-        console.log(`[Nexus Fetcher] Fetching ${url} for ${category}...`);
-        const feed = await parser.parseURL(url);
-        
-        feed.items.forEach(item => {
-          const rawContent = item.contentSnippet || item.content || '';
-          if (item.title && rawContent) {
-            const title = item.title;
-            const summary = stripHtml(rawContent);
-            const text = title + ' ' + summary;
+    const categoryPromises = Object.entries(CATEGORY_FEEDS).map(async ([category, urls]) => {
+      const articles = await fetchCategory(category, urls);
+      globalCorpus[category] = articles;
+      console.log(`[Nexus Fetcher] Loaded ${globalCorpus[category].length} articles for ${category}`);
+    });
 
-            articles.push({
-              id: item.guid || item.link || Math.random().toString(36),
-              category,
-              title,
-              summary,
-              link: item.link || '',
-              pubDate: item.pubDate || new Date().toISOString(),
-              tokens: new Set(tokenize(text)),
-              entities: new Set(extractEntities(text))
-            });
-          }
-        });
-      } catch (error) {
-        console.error(`[Nexus Fetcher] Failed to fetch feed ${url}:`, error);
-      }
-    }
-    
-    // Sort by publication date, newest first, and keep top 50
-    articles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
-    globalCorpus[category] = articles.slice(0, 50);
-    console.log(`[Nexus Fetcher] Loaded ${globalCorpus[category].length} articles for ${category}`);
-  }
-  
-  console.log('[Nexus Fetcher] Corpus updated successfully.');
+    await Promise.all(categoryPromises);
+    console.log('[Nexus Fetcher] Corpus updated successfully.');
+  } catch (error) {
+    console.error('[Nexus Fetcher] Critical error during fetchAllFeeds:', error);
   } finally {
     isFetching = false;
   }
