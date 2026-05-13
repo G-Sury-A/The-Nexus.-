@@ -1,4 +1,5 @@
 import Parser from 'rss-parser';
+import sanitizeHtml from 'sanitize-html';
 import { tokenize, extractEntities } from './nlpUtils.js';
 
 const parser = new Parser();
@@ -63,9 +64,12 @@ export const globalCorpus: Record<string, RawArticle[]> = {
 
 let isFetching = false;
 
-// Strips basic HTML tags from descriptions
+// Strips all HTML tags and leaves only plain text
 function stripHtml(html: string) {
-  return html.replace(/<[^>]*>?/gm, '').trim();
+  return sanitizeHtml(html, {
+    allowedTags: [],
+    allowedAttributes: {}
+  }).trim();
 }
 
 export async function fetchAllFeeds() {
