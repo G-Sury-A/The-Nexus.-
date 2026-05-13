@@ -25,6 +25,7 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "rss-parser": "^3.13.0",
+    "sanitize-html": "^2.17.4",
     "vite": "^6.2.3",
     "vite-plugin-pwa": "^1.3.0"
   },
@@ -35,6 +36,7 @@
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/sanitize-html": "^2.16.1",
     "autoprefixer": "^10.4.21",
     "eslint": "^10.3.0",
     "firebase": "^12.13.0",
