@@ -48,8 +48,8 @@ export interface RawArticle {
   pubDate: string;
   category: string;
   id: string;
-  tokens?: Set<string>;
-  entities?: Set<string>;
+  tokens: Set<string>;
+  entities: Set<string>;
 }
 
 // In-memory cache to hold our corpus fetched at 3 AM

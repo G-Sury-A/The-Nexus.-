@@ -2,13 +2,13 @@ import { globalCorpus, RawArticle, fetchAllFeeds } from './fetcher.js';
 import { tokenize, extractEntities } from './nlpUtils.js';
 
 function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commonKeys: string[] } {
-  // Base token affinity - use cached if available
-  const tokensA = a.tokens || new Set(tokenize(a.title + ' ' + a.summary));
-  const tokensB = b.tokens || new Set(tokenize(b.title + ' ' + b.summary));
+  // Base token affinity - use cached
+  const tokensA = a.tokens;
+  const tokensB = b.tokens;
   
-  // Entity affinity (higher weight) - use cached if available
-  const entitiesA = a.entities || new Set(extractEntities(a.title + ' ' + a.summary));
-  const entitiesB = b.entities || new Set(extractEntities(b.title + ' ' + b.summary));
+  // Entity affinity (higher weight) - use cached
+  const entitiesA = a.entities;
+  const entitiesB = b.entities;
 
   const commonKeys: string[] = [];
   let score = 0;
@@ -36,8 +36,8 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
 
 // Emulate TF-IDF / Persona weighting
 function scoreAgainstPersona(article: RawArticle, prefTokens: Set<string>): number {
-  const tokens = article.tokens || new Set(tokenize(article.title + ' ' + article.summary));
-  const entities = article.entities || new Set(extractEntities(article.title + ' ' + article.summary));
+  const tokens = article.tokens;
+  const entities = article.entities;
   let score = 0;
   
   tokens.forEach(t => {
@@ -93,7 +93,7 @@ export async function generateNexusBriefing(userPrefs: any) {
     const articleEntities: { article: RawArticle; entities: Set<string>; score: number }[] = [];
 
     pool.forEach(article => {
-      const entities = article.entities || new Set(extractEntities(article.title + ' ' + article.summary));
+      const entities = article.entities;
       const personaScore = scoreAgainstPersona(article, prefTokens);
 
       articleEntities.push({ article, entities, score: personaScore });
