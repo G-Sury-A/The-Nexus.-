@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Onboarding } from './components/Onboarding';
 import { Dashboard } from './components/Dashboard';
 import { UserPreferences, DailyBriefing } from './types';
@@ -6,70 +6,12 @@ import { AnimatePresence, motion } from 'motion/react';
 import { generateBriefing } from './services/newsService';
 import { useAuth } from './components/AuthContext';
 import { getUserPreferences, saveUserPreferences } from './services/userService';
-import { Shield, Sparkles, BrainCircuit, ArrowRight, X } from 'lucide-react';
-
-interface ErrorBoundaryProps {
-  children: ReactNode;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
-}
-
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="bg-black text-white min-h-screen flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 border border-red-500/20">
-            <X className="w-8 h-8 text-red-500" />
-          </div>
-          <h1 className="text-3xl font-bold mb-4 text-white">Application Crash</h1>
-          <p className="text-zinc-400 max-w-md mb-8">
-            The Nexus has encountered a critical runtime error.
-            {this.state.error && <span className="block mt-2 font-mono text-xs text-red-400 bg-red-950/30 p-2 rounded">{this.state.error.message}</span>}
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-white text-black px-8 py-3 rounded-xl font-medium hover:bg-zinc-200 transition-colors"
-          >
-            Reload Nexus
-          </button>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
+import { Shield, Sparkles, BrainCircuit, ArrowRight } from 'lucide-react';
 
 export default function App() {
-  return (
-    <ErrorBoundary>
-      <AppContent />
-    </ErrorBoundary>
-  );
-}
-
-function AppContent() {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [briefing, setBriefing] = useState<DailyBriefing | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   
   const [showAuthPopup, setShowAuthPopup] = useState(false);
   const [pendingPrefs, setPendingPrefs] = useState<UserPreferences | null>(null);
@@ -78,60 +20,36 @@ function AppContent() {
   const [initialFetchDone, setInitialFetchDone] = useState(false);
 
   useEffect(() => {
-    if (loading) return;
-
-    async function handleAuthTransition() {
-      const savedPendingPrefs = localStorage.getItem('pending_nexus_prefs');
-
+    async function loadUserPrefs() {
       if (user) {
-        if (savedPendingPrefs) {
-          // Transitioning from redirect login
+        const prefs = await getUserPreferences(user.uid);
+        if (prefs) {
+          setPreferences(prefs);
+          
+          setIsGenerating(true);
           try {
-            const prefs = JSON.parse(savedPendingPrefs);
-            setPreferences(prefs);
-            // Use merge: true to avoid issues with createdAt security rules if they exist
-            await saveUserPreferences(user.uid, prefs, true);
-            await generate(prefs);
-          } catch (err) {
-            console.error("Error applying pending preferences:", err);
-            setError("We logged you in but couldn't apply your preferences. Please try setting them again.");
+            const data = await generateBriefing(prefs);
+            setBriefing(data);
+          } catch(err) {
+             console.error("error making brief", err);
           } finally {
-            localStorage.removeItem('pending_nexus_prefs');
-            setShowAuthPopup(false);
-          }
-        } else {
-          // Normal login, load existing prefs
-          try {
-            const prefs = await getUserPreferences(user.uid);
-            if (prefs) {
-              setPreferences(prefs);
-              await generate(prefs);
-            }
-          } catch (err: any) {
-            console.error("Error loading user preferences:", err);
-            setError("Failed to load your profile. Please try again.");
+            setIsGenerating(false);
           }
         }
       }
       setInitialFetchDone(true);
     }
     
-    handleAuthTransition();
+    if (!loading) {
+       loadUserPrefs();
+    }
   }, [user, loading]);
 
   const handleCompleteOnboarding = async (prefs: UserPreferences) => {
-    setError(null);
     if (user) {
       setPreferences(prefs);
-      try {
-        await saveUserPreferences(user.uid, prefs, true);
-        await generate(prefs);
-      } catch (err: any) {
-        console.error("Error saving preferences:", err);
-        setError("Failed to save your preferences. You can still use the app as a guest for now.");
-        // Fallback to guest-like behavior so they can at least see the briefing
-        await generate(prefs);
-      }
+      await saveUserPreferences(user.uid, prefs, true);
+      generate(prefs);
     } else {
       setPendingPrefs(prefs);
       setShowAuthPopup(true);
@@ -140,20 +58,11 @@ function AppContent() {
 
   const generate = async (prefs: UserPreferences) => {
     setIsGenerating(true);
-    setError(null);
     try {
       const data = await generateBriefing(prefs);
       setBriefing(data);
-    } catch(err: any) {
-      console.error("Generation error:", err);
-      // More descriptive error
-      if (err.message?.includes('Database error') && err.message?.includes('permission-denied')) {
-        setError("Access Denied. It seems you're trying to update an existing profile with inconsistent data. Try refreshing or logging in again.");
-      } else if (err.message?.includes('Failed to fetch')) {
-        setError("Unable to reach the Nexus server. Please check your internet connection.");
-      } else {
-        setError(`The Nexus Algorithm encountered an issue while correlating your briefing. ${err.message || ''}`);
-      }
+    } catch(err) {
+      console.error(err);
     } finally {
       setIsGenerating(false);
     }
@@ -161,27 +70,16 @@ function AppContent() {
 
   const handleLogin = async () => {
     if (!pendingPrefs) return;
-    setError(null);
     try {
-      // Save pending prefs in case of redirect
-      localStorage.setItem('pending_nexus_prefs', JSON.stringify(pendingPrefs));
-
       const loggedUser = await login();
       if (loggedUser) {
         setShowAuthPopup(false);
         setPreferences(pendingPrefs);
-        try {
-          await saveUserPreferences(loggedUser.uid, pendingPrefs, true);
-        } catch (err) {
-          console.error("Failed to save preferences after login:", err);
-          // We don't block the user if saving fails, but we might want to show a warning
-        }
-        await generate(pendingPrefs);
-        localStorage.removeItem('pending_nexus_prefs');
+        await saveUserPreferences(loggedUser.uid, pendingPrefs, true);
+        generate(pendingPrefs);
       }
     } catch (e) {
-      console.error("Login failed", e);
-      setError("Login failed. Please try again or continue as a guest.");
+      console.error("Login canceled", e);
     }
   };
 
@@ -207,7 +105,7 @@ function AppContent() {
           <motion.div key="onboarding" exit={{ opacity: 0 }}>
             <Onboarding onComplete={handleCompleteOnboarding} />
           </motion.div>
-        ) : (isGenerating || (preferences && !briefing && !error)) ? (
+        ) : isGenerating ? (
           <motion.div 
             key="generating"
             initial={{ opacity: 0 }}
@@ -221,36 +119,6 @@ function AppContent() {
             </div>
             <p className="text-xl font-light text-zinc-300 animate-pulse">Curating your personalized Nexus Web...</p>
             <p className="text-sm text-zinc-500">Algorithmically correlating Geopolitics to {preferences?.jobIndustry || pendingPrefs?.jobIndustry} and local matters...</p>
-          </motion.div>
-        ) : error ? (
-          <motion.div
-            key="error"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center min-h-screen p-6 text-center"
-          >
-            <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 border border-red-500/20">
-              <X className="w-8 h-8 text-red-500" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Something went wrong</h2>
-            <p className="text-zinc-400 max-w-md mb-8">{error}</p>
-            <button
-              onClick={() => preferences ? generate(preferences) : (pendingPrefs ? generate(pendingPrefs) : window.location.reload())}
-              className="bg-white text-black px-8 py-3 rounded-xl font-medium hover:bg-zinc-200 transition-colors"
-            >
-              Try Again
-            </button>
-            <button
-              onClick={() => {
-                setError(null);
-                setPreferences(null);
-                setBriefing(null);
-                setShowAuthPopup(false);
-              }}
-              className="mt-4 text-zinc-500 hover:text-zinc-300 transition-colors"
-            >
-              Back to Start
-            </button>
           </motion.div>
         ) : briefing ? (
           <motion.div 
@@ -266,7 +134,6 @@ function AppContent() {
                 else {
                   setPreferences(null);
                   setBriefing(null);
-                  setError(null);
                 }
               }} 
             />

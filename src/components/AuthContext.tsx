@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
 import { auth, loginWithGoogle, logout } from '../lib/firebase';
-import { getRedirectResult } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -13,7 +12,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  login: async () => null,
+  login: async () => {},
   logout: async () => {},
 });
 
@@ -24,35 +23,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-
-    const handleRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result && mounted) {
-          setUser(result.user);
-        }
-      } catch (error) {
-        console.error("Error handling redirect result:", error);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        setUser(user);
-        setLoading(false);
-      } else {
-        // Only if we haven't already finished loading via getRedirectResult
-        handleRedirect();
-      }
+      setUser(user);
+      setLoading(false);
     });
 
-    return () => {
-      mounted = false;
-      unsubscribe();
-    };
+    return unsubscribe;
   }, []);
 
   const loginContext = async () => {

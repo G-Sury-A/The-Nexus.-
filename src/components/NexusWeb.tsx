@@ -270,12 +270,37 @@ export function NexusWeb({ briefing, prefs }: NexusWebProps) {
                         {dp}
                       </span>
                     ))}
-                    <p className="text-zinc-400 mt-3 text-sm">{activeNodeData.summary}</p>
+                    <p className="text-zinc-400 mt-3 text-sm">
+                      {activeNodeData.summary.split('**').map((part: string, i: number) => 
+                        i % 2 === 1 ? <span key={i} className="text-purple-400 font-semibold">{part}</span> : part
+                      )}
+                    </p>
                   </div>
                 ) : (
-                  <p className="text-zinc-300 text-sm sm:text-base leading-relaxed">
-                    {activeNodeData.summary}
-                  </p>
+                  <div className="flex flex-col">
+                    <p className="text-zinc-300 text-sm sm:text-base leading-relaxed mb-4">
+                      {activeNodeData.summary.split('**').map((part: string, i: number) => 
+                        i % 2 === 1 ? <span key={i} className="text-purple-400 font-semibold">{part}</span> : part
+                      )}
+                    </p>
+                    {activeNodeData.bullets && activeNodeData.bullets.length > 0 && (
+                      <div className="pt-3 border-t border-zinc-800/80">
+                        <ul className="space-y-2">
+                          {activeNodeData.bullets.map((b, i) => {
+                             const split = b.split(' - ');
+                             return (
+                              <li key={i} className="text-sm text-zinc-400 flex items-start">
+                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 mr-3 shrink-0 opacity-70"></span>
+                                <span>
+                                  <strong className="text-zinc-200 font-medium">{split[0]}</strong> - {split[1] || ''}
+                                </span>
+                              </li>
+                             );
+                          })}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

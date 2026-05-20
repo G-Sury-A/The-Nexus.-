@@ -222,8 +222,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
               <div className="pt-4 space-y-2">
                 <label className="text-sm text-zinc-500">Reading Style</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {(['Bullets', 'Narrative', 'Data-driven', 'Executive'] as NotificationStyle[]).map(style => (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {(['Bullets', 'Narrative', 'Data-driven'] as NotificationStyle[]).map(style => (
                     <SelectionButton 
                       key={style} 
                       active={prefs.notificationStyle === style} 

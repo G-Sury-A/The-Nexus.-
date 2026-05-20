@@ -1,14 +1,43 @@
 import { globalCorpus, RawArticle, fetchAllFeeds } from './fetcher.js';
-import { tokenize, extractEntities } from './nlpUtils.js';
+import nlp from 'compromise';
+
+// Basic list of stop words to filter out grammatical glue
+const STOP_WORDS = new Set([
+  'the', 'is', 'at', 'which', 'on', 'in', 'and', 'a', 'an', 'to', 'for', 'of', 'with', 'by', 'as', 'it', 'that', 'this', 'from', 'but', 'not', 'or', 'are', 'be', 'has', 'have', 'was', 'were', 'will', 'would', 'can', 'could', 'should', 'their', 'they', 'we', 'our', 'what', 'who', 'when', 'where', 'how', 'why', 'its', 'about', 'more', 'new', 'after', 'also', 'over', 'into', 'out', 'up', 'down', 'been', 'some', 'says', 'said', 'all', 'there', 'one', 'two', 'than', 'while'
+]);
+
+function tokenize(text: string): string[] {
+  // Lowercase, remove punctuation, split by space
+  const words = text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
+  return words.filter(w => w.length > 3 && !STOP_WORDS.has(w));
+}
+
+function capitalize(str: string) {
+  return str.replace(/\b\w/g, l => l.toUpperCase());
+}
+
+function extractEntities(text: string): string[] {
+  const doc = nlp(text);
+  // Extract proper nouns, people, places, organizations
+  const topics = doc.topics().out('array');
+  const orgs = doc.organizations().out('array');
+  const people = doc.people().out('array');
+  const places = doc.places().out('array');
+  const nouns = doc.match('#Noun').out('array').filter((n: string) => n.length > 5);
+  
+  // Combine all entities, normalize to lowercase to improve matching initially, but keep casing for display
+  const allEntities = [...topics, ...orgs, ...people, ...places, ...nouns].map((e: string) => e.replace(/[^\w\s-]/g, '').trim());
+  return Array.from(new Set(allEntities)).filter(e => e.length > 3);
+}
 
 function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commonKeys: string[] } {
-  // Base token affinity - use cached
-  const tokensA = a.tokens;
-  const tokensB = b.tokens;
+  // Base token affinity
+  const tokensA = new Set(tokenize(a.title + ' ' + a.summary));
+  const tokensB = new Set(tokenize(b.title + ' ' + b.summary));
   
-  // Entity affinity (higher weight) - use cached
-  const entitiesA = a.entities;
-  const entitiesB = b.entities;
+  // Entity affinity (higher weight)
+  const entitiesA = new Set(extractEntities(a.title + ' ' + a.summary));
+  const entitiesB = new Set(extractEntities(b.title + ' ' + b.summary));
 
   const commonKeys: string[] = [];
   let score = 0;
@@ -36,8 +65,8 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
 
 // Emulate TF-IDF / Persona weighting
 function scoreAgainstPersona(article: RawArticle, prefTokens: Set<string>): number {
-  const tokens = article.tokens;
-  const entities = article.entities;
+  const tokens = tokenize(article.title + ' ' + article.summary);
+  const entities = extractEntities(article.title + ' ' + article.summary);
   let score = 0;
   
   tokens.forEach(t => {
@@ -58,7 +87,7 @@ export async function generateNexusBriefing(userPrefs: any) {
   }
 
   // Tokenize user preferences
-  const personaString = `${userPrefs.jobIndustry} ${userPrefs.societyFocus} ${userPrefs.entertainmentInterests} ${userPrefs.region} ${userPrefs.notificationStyle}`;
+  const personaString = `${userPrefs.jobIndustry} ${userPrefs.societyFocus} ${userPrefs.entertainmentVibe} ${userPrefs.region} ${userPrefs.tone}`;
   const prefTokens = new Set([...tokenize(personaString), ...extractEntities(personaString)]);
 
   const chainOrder = ['Geopolitics', 'Job & Industry', 'Society', 'Entertainment', 'Sports'];
@@ -80,7 +109,7 @@ export async function generateNexusBriefing(userPrefs: any) {
          bullets: ['System offline', 'Awaiting next cron sync at 3 AM'],
          dataPoints: [],
          causalLinkToNext: null,
-         style: userPrefs.notificationStyle
+         style: userPrefs.tone
       });
       continue;
     }
@@ -90,10 +119,11 @@ export async function generateNexusBriefing(userPrefs: any) {
 
     // 1. Frequency Analysis: Gather entities from all 50 articles
     const entityFrequency: Record<string, number> = {};
-    const articleEntities: { article: RawArticle; entities: Set<string>; score: number }[] = [];
+    const articleEntities: { article: RawArticle; entities: string[]; score: number }[] = [];
 
     pool.forEach(article => {
-      const entities = article.entities;
+      const text = article.title + ' ' + article.summary;
+      const entities = extractEntities(text);
       const personaScore = scoreAgainstPersona(article, prefTokens);
 
       articleEntities.push({ article, entities, score: personaScore });
@@ -120,7 +150,7 @@ export async function generateNexusBriefing(userPrefs: any) {
     topSubjects.forEach(subject => {
       // Find highest scored article containing this subject
       const matchingArticles = articleEntities
-        .filter(ae => ae.entities.has(subject) && !usedArticleIds.has(ae.article.id))
+        .filter(ae => ae.entities.includes(subject) && !usedArticleIds.has(ae.article.id))
         .sort((a, b) => b.score - a.score);
       
       if (matchingArticles.length > 0) {
@@ -133,7 +163,7 @@ export async function generateNexusBriefing(userPrefs: any) {
     if (topMatches.length === 0 && articleEntities.length > 0) {
        articleEntities.sort((a, b) => b.score - a.score);
        articleEntities.slice(0, 3).forEach(ae => {
-         topMatches.push({ article: ae.article, subject: Array.from(ae.entities)[0] || 'General Update' });
+         topMatches.push({ article: ae.article, subject: ae.entities[0] || 'General Update' });
        });
     }
 
@@ -156,10 +186,19 @@ export async function generateNexusBriefing(userPrefs: any) {
     const bullets: string[] = [];
     const sourceArticles: any[] = [];
     
-    // Crisp, personalized paragraph
-    const userVibe = userPrefs.notificationStyle === 'Executive' ? 'a high-level' : 'a tailored';
-    let compositeSummary = `Based on frequency across 50 recent articles, the biggest drivers in ${category} are: ${topSubjects.join(', ')}. `;
-    compositeSummary += `Here is ${userVibe} breakdown perfectly aligned with your ${userPrefs.jobIndustry} context:`;
+    // Clean top Subjects for display
+    const formattedTopics = topSubjects.map(t => capitalize(t));
+    
+    // Crisp, personalized paragraph stitched together
+    const userVibe = userPrefs.notificationStyle === 'Executive' ? 'a high-level, executive' : 'a detailed, tailored';
+    let compositeSummary = `Based on high-frequency themes across top ${pool.length} updates, the primary drivers in ${category} are ${formattedTopics.length > 0 ? formattedTopics.map(t => `**${t}**`).join(', ') : 'overall trends'}. ${userPrefs.notificationStyle === 'Executive' ? 'Here is the high-level' : 'Here is the tailored'} breakdown aligned with your ${userPrefs.jobIndustry} focus: `;
+
+    const transitions = [
+      ["Leading the shifts, recent developments around", "indicate that"],
+      ["Concurrently, looking at", "we see"],
+      ["Furthermore, in the context of", "the focus is on"],
+      ["Additionally, regarding", "reports suggest"]
+    ];
 
     topMatches.forEach((m, idx) => {
       sourceArticles.push({
@@ -167,10 +206,31 @@ export async function generateNexusBriefing(userPrefs: any) {
          summary: m.article.summary,
          link: m.article.link
       });
-      // Summarize via first sentence heuristic to keep it crisp
+      
+      // Understand what the sentence is about and simplify it for bullets
+      let nlpDoc = nlp(m.article.summary || m.article.title).sentences().first();
+      nlpDoc.remove('(#Adverb|#Preposition|#Conjunction|#Determiner)');
+      let words = nlpDoc.terms().out('array').filter((x: string) => x.length > 0).slice(0, 7).join(' ');
+      let extremelyShort = words.length > 5 ? words.charAt(0).toUpperCase() + words.slice(1) : (m.article.title.substring(0, 40) + '...');
+      bullets.push(`${capitalize(m.subject)} - ${extremelyShort}`);
+
+      // Summarize via first sentence heuristic but make it more descriptive for the paragraph
       const sentences = m.article.summary.split(/(?<=[.!?])\s+/);
-      const crispSentence = sentences[0] || m.article.title;
-      bullets.push(`${m.subject.toUpperCase()}: ${crispSentence}`);
+      let crispSentence = sentences.length > 1 ? sentences[0] + ' ' + sentences[1] : sentences[0] || m.article.title;
+      crispSentence = crispSentence.trim();
+      if (crispSentence && !crispSentence.match(/[.!?]$/)) crispSentence += '.';
+
+      // Stitch it into the summary rather than adding to bullets
+      let displaySubject = `**${capitalize(m.subject)}**`;
+      const transition = transitions[idx % transitions.length];
+      
+      if (idx === 0) {
+        compositeSummary += `${transition[0]} ${displaySubject} ${transition[1]} ${crispSentence.charAt(0).toLowerCase() + crispSentence.slice(1)} `;
+      } else if (idx === 1) {
+        compositeSummary += `${transition[0]} ${displaySubject}, ${transition[1]} ${crispSentence.charAt(0).toLowerCase() + crispSentence.slice(1)} `;
+      } else {
+        compositeSummary += `Lastly, touching upon ${displaySubject}, ${crispSentence.charAt(0).toLowerCase() + crispSentence.slice(1)} `;
+      }
     });
 
     const primaryMatch = topMatches[0]?.article || pool[0];
@@ -178,12 +238,12 @@ export async function generateNexusBriefing(userPrefs: any) {
     const node = {
       id: primaryMatch.id,
       category: category,
-      headline: `${category} Key Movements: ${topSubjects[0] || ''}`,
+      headline: `${category} Focus: ${formattedTopics[0] || 'Key Shifts'}`,
       summary: compositeSummary.trim(),
       bullets: bullets,
       dataPoints: [
-        `Analyzed 50 top items`,
-        `Primary focus: ${topSubjects[0] || 'General'}`
+        `Analyzed ${pool.length} real-time updates`,
+        `Top Focus: ${formattedTopics[0] || 'Broad Overview'}`
       ],
       icon: 'Globe2',
       causalLinkToNext: null,

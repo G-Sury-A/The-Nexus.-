@@ -46,7 +46,33 @@ export function Dashboard({ prefs, briefing, onReset }: DashboardProps) {
       case 'Narrative':
       default:
         // Use a truncated version for the card to encourage clicking
-        return <p className="text-zinc-400 mt-2 leading-relaxed line-clamp-3">{node.summary}</p>;
+        const parts = node.summary.split('**');
+        return (
+          <div className="mt-3 flex flex-col h-full">
+            <p className="text-zinc-400 leading-relaxed line-clamp-3 mb-3">
+              {parts.map((part: string, i: number) => 
+                 i % 2 === 1 ? <span key={i} className="text-purple-400 font-semibold">{part}</span> : part
+              )}
+            </p>
+            {node.bullets && node.bullets.length > 0 && (
+              <div className="mt-auto pt-3 border-t border-zinc-800/80">
+                <ul className="space-y-1.5">
+                  {node.bullets.map((b: string, i: number) => {
+                     const split = b.split(' - ');
+                     return (
+                      <li key={i} className="text-xs text-zinc-500 flex items-start">
+                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 mr-2 shrink-0 opacity-70"></span>
+                        <span className="line-clamp-1">
+                          <strong className="text-zinc-300 font-medium">{split[0]}</strong> - {split[1] || ''}
+                        </span>
+                      </li>
+                     );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+        );
     }
   };
 
@@ -219,9 +245,30 @@ export function Dashboard({ prefs, briefing, onReset }: DashboardProps) {
                   </h2>
                   
                   <div className="prose prose-invert max-w-none">
-                    <p className="text-lg leading-relaxed text-zinc-300 mb-8 font-light">
-                      {selectedArticle.summary}
+                    <p className="text-lg leading-relaxed text-zinc-300 mb-8 font-light whitespace-pre-wrap">
+                      {selectedArticle.summary.split('**').map((part: string, i: number) => 
+                         i % 2 === 1 ? <span key={i} className="text-purple-400 font-semibold">{part}</span> : part
+                      )}
                     </p>
+                    
+                    {selectedArticle.bullets && selectedArticle.bullets.length > 0 && (
+                      <div className="mb-8">
+                        <ul className="space-y-3">
+                          {selectedArticle.bullets.map((b: string, i: number) => {
+                             const split = b.split(' - ');
+                             return (
+                              <li key={i} className="text-base text-zinc-300 flex items-start">
+                                <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 shrink-0 opacity-80 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
+                                <div>
+                                  <span className="font-semibold text-white mr-2">{split[0]}</span>
+                                  <span className="text-zinc-400">{split[1] || ''}</span>
+                                </div>
+                              </li>
+                             );
+                          })}
+                        </ul>
+                      </div>
+                    )}
                     
                     {selectedArticle.topArticles && selectedArticle.topArticles.length > 0 && (
                       <div className="mb-8 p-6 bg-zinc-900/50 rounded-2xl border border-zinc-800/80">

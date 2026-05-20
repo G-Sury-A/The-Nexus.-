@@ -9,7 +9,7 @@ export const generateBriefing = async (prefs: UserPreferences): Promise<DailyBri
   });
   
   if (!response.ok) {
-    throw new Error(`Failed to generate real algorithm briefing (Status: ${response.status})`);
+    throw new Error('Failed to generate real algorithm briefing');
   }
 
   const data = await response.json();

@@ -10,7 +10,7 @@ const testEnv = await initializeTestEnvironment({
   },
 });
 
-const db = testEnv.authenticatedContext("V0WufoDwSDhgaaC5ptt2V42yGzJ2").firestore();
+const db = testEnv.authenticatedContext("V0WufoDwSDhgaaC5ptt2V42yGzJ2", { email: "suryasajitha123@gmail.com", email_verified: true }).firestore();
 
 const payload = {
   name: "Surya",
