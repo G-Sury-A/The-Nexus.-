@@ -3,6 +3,18 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOu
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
+// Validate config presence to avoid opaque crashes
+const missingKeys = Object.entries(firebaseConfig).reduce((acc, [key, value]) => {
+  if (!value && key !== 'measurementId' && key !== 'firestoreDatabaseId') {
+    acc.push(key);
+  }
+  return acc;
+}, [] as string[]);
+
+if (missingKeys.length > 0) {
+  console.error(`CRITICAL: Firebase configuration is missing the following keys: ${missingKeys.join(', ')}. Check your firebase-applet-config.json.`);
+}
+
 const app = initializeApp(firebaseConfig);
 // CRITICAL: The app will break without providing firestoreDatabaseId in getFirestore for Enterprise
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId); 
