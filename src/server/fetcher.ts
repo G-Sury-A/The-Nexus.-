@@ -45,7 +45,6 @@ export interface RawArticle {
   summary: string;
   link: string;
   pubDate: string;
-  pubDateParsed?: number;
   category: string;
   id: string;
 }
@@ -76,15 +75,13 @@ export async function fetchAllFeeds() {
         
         feed.items.forEach(item => {
           if (item.title && (item.contentSnippet || item.content)) {
-            const pubDate = item.pubDate || new Date().toISOString();
             fetchedItems.push({
               id: item.guid || item.link || Math.random().toString(36),
               category,
               title: item.title,
               summary: stripHtml(item.contentSnippet || item.content || ''),
               link: item.link || '',
-              pubDate,
-              pubDateParsed: new Date(pubDate).getTime()
+              pubDate: item.pubDate || new Date().toISOString()
             });
           }
         });
@@ -99,7 +96,7 @@ export async function fetchAllFeeds() {
     const articles = results.flat();
     
     // Sort by publication date, newest first, and keep top 100 for better algorithms
-    articles.sort((a, b) => (b.pubDateParsed ?? new Date(b.pubDate).getTime()) - (a.pubDateParsed ?? new Date(a.pubDate).getTime()));
+    articles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
     globalCorpus[category] = articles.slice(0, 100);
     console.log(`[Nexus Fetcher] Loaded ${globalCorpus[category].length} articles for ${category}`);
   });
