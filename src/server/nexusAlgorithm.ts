@@ -157,14 +157,31 @@ export async function generateNexusBriefing(userPrefs: any) {
       const entities = extractEntities(text);
       const personaScore = scoreAgainstPersona(article, prefTokens);
 
-      articleEntities.push({ article, entities, score: personaScore });
+      // Strict alignment with user preferences
+      if (personaScore > 0) {
+        articleEntities.push({ article, entities, score: personaScore });
 
-      entities.forEach(ent => {
-        // Boost frequency if it matches user persona directly
-        const weight = prefTokens.has(ent) ? 3 : 1; 
-        entityFrequency[ent] = (entityFrequency[ent] || 0) + weight;
-      });
+        entities.forEach(ent => {
+          // Boost frequency if it matches user persona directly
+          const weight = prefTokens.has(ent) ? 3 : 1;
+          entityFrequency[ent] = (entityFrequency[ent] || 0) + weight;
+        });
+      }
     });
+
+    // Fallback if no matching articles perfectly aligned
+    if (articleEntities.length === 0) {
+       pool.forEach(article => {
+         const text = article.title + ' ' + article.summary;
+         const entities = extractEntities(text);
+         const personaScore = scoreAgainstPersona(article, prefTokens);
+         articleEntities.push({ article, entities, score: personaScore });
+         entities.forEach(ent => {
+           const weight = prefTokens.has(ent) ? 3 : 1;
+           entityFrequency[ent] = (entityFrequency[ent] || 0) + weight;
+         });
+       });
+    }
 
     // 2. Identify Top 3 Frequent Subjects
     const sortedEntities = Object.entries(entityFrequency)

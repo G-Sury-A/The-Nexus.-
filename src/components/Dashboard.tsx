@@ -146,7 +146,7 @@ export function Dashboard({ prefs, briefing, onReset }: DashboardProps) {
                     transition={{ type: 'spring', bounce: 0.4, duration: 0.8, delay: idx * 0.1 + 0.1 }}
                     key={node.id} 
                     onClick={() => setSelectedArticle(node)}
-                    className="bg-zinc-900/80 backdrop-blur-sm border border-zinc-800 p-6 rounded-3xl hover:-translate-y-1 hover:border-purple-500/40 hover:shadow-[0_10px_40px_rgba(168,85,247,0.2)] cursor-pointer transition-all duration-500 flex flex-col group relative overflow-hidden"
+                    className="bg-zinc-900/80 backdrop-blur-sm border border-zinc-800 p-6 rounded-3xl shadow-[0_8px_30px_rgba(168,85,247,0.15)] hover:-translate-y-1 hover:border-purple-500/40 hover:shadow-[0_10px_40px_rgba(168,85,247,0.3)] cursor-pointer transition-all duration-500 flex flex-col group relative overflow-hidden"
                   >
                     {/* Glowing Nexus border on hover */}
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
