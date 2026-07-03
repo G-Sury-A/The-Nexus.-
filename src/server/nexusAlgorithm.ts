@@ -257,9 +257,12 @@ export async function generateNexusBriefing(userPrefs: any) {
       
       // Understand what the sentence is about and simplify it for bullets
       let nlpDoc = nlp(m.article.summary || m.article.title).sentences().first();
-      nlpDoc.remove('(#Adverb|#Preposition|#Conjunction|#Determiner)');
-      let words = nlpDoc.terms().out('array').filter((x: string) => x.length > 0).slice(0, 7).join(' ');
-      let extremelyShort = words.length > 5 ? words.charAt(0).toUpperCase() + words.slice(1) : (m.article.title.substring(0, 40) + '...');
+      let bulletText = nlpDoc.out('text').trim();
+      let bulletWords = bulletText.split(' ');
+      let extremelyShort = bulletWords.length > 12
+        ? bulletWords.slice(0, 12).join(' ') + '...'
+        : bulletText;
+      if (!extremelyShort) extremelyShort = m.article.title.substring(0, 40) + '...';
       bullets.push(`${capitalize(m.subject)} - ${extremelyShort}`);
 
       // Summarize via first sentence heuristic but make it more descriptive for the paragraph
@@ -268,16 +271,24 @@ export async function generateNexusBriefing(userPrefs: any) {
       crispSentence = crispSentence.trim();
       if (crispSentence && !crispSentence.match(/[.!?]$/)) crispSentence += '.';
 
+      // Lowercase if it's a common starter word, otherwise keep as is for proper nouns
+      const commonStarters = ['The', 'A', 'An', 'This', 'That', 'These', 'Those', 'It', 'He', 'She', 'They', 'We', 'In', 'On', 'At', 'To', 'As', 'For', 'With', 'By', 'From', 'New', 'Major', 'Some', 'Many', 'Any', 'All', 'There', 'Here'];
+      let firstWord = crispSentence.split(' ')[0] || '';
+      let formattedSentence = crispSentence;
+      if (commonStarters.includes(firstWord)) {
+        formattedSentence = crispSentence.charAt(0).toLowerCase() + crispSentence.slice(1);
+      }
+
       // Stitch it into the summary rather than adding to bullets
       let displaySubject = `**${capitalize(m.subject)}**`;
       const transition = transitions[idx % transitions.length];
       
       if (idx === 0) {
-        compositeSummary += `${transition[0]} ${displaySubject} ${transition[1]} ${crispSentence.charAt(0).toLowerCase() + crispSentence.slice(1)} `;
+        compositeSummary += `${transition[0]} ${displaySubject} ${transition[1]} ${formattedSentence} `;
       } else if (idx === 1) {
-        compositeSummary += `${transition[0]} ${displaySubject}, ${transition[1]} ${crispSentence.charAt(0).toLowerCase() + crispSentence.slice(1)} `;
+        compositeSummary += `${transition[0]} ${displaySubject}, ${transition[1]} ${formattedSentence} `;
       } else {
-        compositeSummary += `Lastly, touching upon ${displaySubject}, ${crispSentence.charAt(0).toLowerCase() + crispSentence.slice(1)} `;
+        compositeSummary += `Lastly, touching upon ${displaySubject}, ${formattedSentence} `;
       }
     });
 
