@@ -63,10 +63,18 @@ function stripHtml(html: string) {
   return html.replace(/<[^>]*>?/gm, '').trim();
 }
 
+let isFetching = false;
+
 export async function fetchAllFeeds() {
-  console.log('[Nexus Fetcher] Starting daily RSS corpus fetch...');
-  
-  const fetchPromises = Object.entries(CATEGORY_FEEDS).map(async ([category, urls]) => {
+  if (isFetching) {
+    console.log('[Nexus Fetcher] Fetch already in progress, skipping...');
+    return;
+  }
+  isFetching = true;
+  try {
+    console.log('[Nexus Fetcher] Starting daily RSS corpus fetch...');
+
+    const fetchPromises = Object.entries(CATEGORY_FEEDS).map(async ([category, urls]) => {
     const feedPromises = urls.map(async url => {
       try {
         console.log(`[Nexus Fetcher] Fetching ${url} for ${category}...`);
@@ -97,10 +105,13 @@ export async function fetchAllFeeds() {
     
     // Sort by publication date, newest first, and keep top 100 for better algorithms
     articles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
-    globalCorpus[category] = articles.slice(0, 100);
-    console.log(`[Nexus Fetcher] Loaded ${globalCorpus[category].length} articles for ${category}`);
-  });
+      globalCorpus[category] = articles.slice(0, 100);
+      console.log(`[Nexus Fetcher] Loaded ${globalCorpus[category].length} articles for ${category}`);
+    });
 
-  await Promise.all(fetchPromises);
-  console.log('[Nexus Fetcher] Corpus updated successfully.');
+    await Promise.all(fetchPromises);
+    console.log('[Nexus Fetcher] Corpus updated successfully.');
+  } finally {
+    isFetching = false;
+  }
 }
