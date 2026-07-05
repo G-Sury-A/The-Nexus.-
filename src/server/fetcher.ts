@@ -45,6 +45,7 @@ export interface RawArticle {
   summary: string;
   link: string;
   pubDate: string;
+  pubDateParsed: number; // ⚡ Bolt: Pre-calculate numeric timestamp for faster sorting
   category: string;
   id: string;
 }
@@ -83,13 +84,15 @@ export async function fetchAllFeeds() {
         
         feed.items.forEach(item => {
           if (item.title && (item.contentSnippet || item.content)) {
+            const pubDateStr = item.pubDate || new Date().toISOString();
             fetchedItems.push({
               id: item.guid || item.link || Math.random().toString(36),
               category,
               title: item.title,
               summary: stripHtml(item.contentSnippet || item.content || ''),
               link: item.link || '',
-              pubDate: item.pubDate || new Date().toISOString()
+              pubDate: pubDateStr,
+              pubDateParsed: new Date(pubDateStr).getTime() // ⚡ Bolt: Parse once during creation
             });
           }
         });
@@ -104,7 +107,8 @@ export async function fetchAllFeeds() {
     const articles = results.flat();
     
     // Sort by publication date, newest first, and keep top 100 for better algorithms
-    articles.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+    // ⚡ Bolt: Use pre-calculated timestamp to avoid O(N log N) Date parsing
+    articles.sort((a, b) => b.pubDateParsed - a.pubDateParsed);
       globalCorpus[category] = articles.slice(0, 100);
       console.log(`[Nexus Fetcher] Loaded ${globalCorpus[category].length} articles for ${category}`);
     });

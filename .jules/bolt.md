@@ -1,3 +1,3 @@
-## 2024-06-25 - Bounded Cache for NLP Memoization
-**Learning:** Adding memoization caches for expensive NLP tasks (`tokenize` and `extractEntities`) drastically improves the cross-affinity calculation algorithm performance. However, because this is a long-running Express server application processing continuous streams of unique string titles and summaries, unbound `Map` objects create severe memory leaks over time.
-**Action:** Always implement a bounded cache mechanism (e.g. tracking `size` and removing the `.keys().next().value`) or an LRU implementation for backend features touching dynamically generated string content.
+## 2024-05-18 - [Date Parsing in Array Sort]
+**Learning:** Using `new Date(string).getTime()` inside a `sort` comparator callback on a large array is significantly slower than parsing the date once and sorting on the pre-calculated number.
+**Action:** When sorting arrays of objects by date strings, pre-calculate the numeric timestamp first to avoid O(N log N) `Date` object instantiations.
