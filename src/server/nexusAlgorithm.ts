@@ -70,13 +70,13 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
   const entitiesA = new Set(extractEntities(a.title + ' ' + a.summary));
   const entitiesB = new Set(extractEntities(b.title + ' ' + b.summary));
 
-  const commonKeys: string[] = [];
+  const commonKeys = new Set<string>();
   let score = 0;
   
   // Higher weight for shared entities (People, places, orgs)
   entitiesA.forEach(t => {
     if (entitiesB.has(t)) {
-      commonKeys.push(t);
+      commonKeys.add(t);
       score += 3; // NLP Entity Match is stronger
     }
   });
@@ -84,14 +84,16 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
   // Fallback to basic token matching
   tokensA.forEach(t => {
     if (tokensB.has(t)) {
-      if (!commonKeys.includes(t)) {
-        commonKeys.push(t);
+      if (!commonKeys.has(t)) {
+        commonKeys.add(t);
       }
       score += 1;
     }
   });
 
-  return { score, commonKeys };
+  // ⚡ Bolt Optimization: Using Set for commonKeys transforms O(N^2) Array.includes lookups
+  // into O(1) constant-time Set.has() checks.
+  return { score, commonKeys: Array.from(commonKeys) };
 }
 
 // Emulate TF-IDF / Persona weighting
@@ -248,6 +250,9 @@ export async function generateNexusBriefing(userPrefs: any) {
       ["Additionally, regarding", "reports suggest"]
     ];
 
+    // ⚡ Bolt Optimization: Use Set for constant-time lookup and declare outside loop to prevent repeated allocation
+    const commonStarters = new Set(['The', 'A', 'An', 'This', 'That', 'These', 'Those', 'It', 'He', 'She', 'They', 'We', 'In', 'On', 'At', 'To', 'As', 'For', 'With', 'By', 'From', 'New', 'Major', 'Some', 'Many', 'Any', 'All', 'There', 'Here']);
+
     topMatches.forEach((m, idx) => {
       sourceArticles.push({
          title: m.article.title,
@@ -272,10 +277,9 @@ export async function generateNexusBriefing(userPrefs: any) {
       if (crispSentence && !crispSentence.match(/[.!?]$/)) crispSentence += '.';
 
       // Lowercase if it's a common starter word, otherwise keep as is for proper nouns
-      const commonStarters = ['The', 'A', 'An', 'This', 'That', 'These', 'Those', 'It', 'He', 'She', 'They', 'We', 'In', 'On', 'At', 'To', 'As', 'For', 'With', 'By', 'From', 'New', 'Major', 'Some', 'Many', 'Any', 'All', 'There', 'Here'];
       let firstWord = crispSentence.split(' ')[0] || '';
       let formattedSentence = crispSentence;
-      if (commonStarters.includes(firstWord)) {
+      if (commonStarters.has(firstWord)) {
         formattedSentence = crispSentence.charAt(0).toLowerCase() + crispSentence.slice(1);
       }
 
