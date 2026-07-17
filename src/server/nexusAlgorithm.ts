@@ -70,13 +70,16 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
   const entitiesA = new Set(extractEntities(a.title + ' ' + a.summary));
   const entitiesB = new Set(extractEntities(b.title + ' ' + b.summary));
 
-  const commonKeys: string[] = [];
+  // ⚡ Bolt Optimization: Replace commonKeys Array with a Set to eliminate
+  // O(N^2) complexity from Array.includes() calls during token deduplication.
+  // Using Set.has() ensures constant-time O(1) lookups.
+  const commonKeys = new Set<string>();
   let score = 0;
   
   // Higher weight for shared entities (People, places, orgs)
   entitiesA.forEach(t => {
     if (entitiesB.has(t)) {
-      commonKeys.push(t);
+      commonKeys.add(t);
       score += 3; // NLP Entity Match is stronger
     }
   });
@@ -84,14 +87,14 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
   // Fallback to basic token matching
   tokensA.forEach(t => {
     if (tokensB.has(t)) {
-      if (!commonKeys.includes(t)) {
-        commonKeys.push(t);
+      if (!commonKeys.has(t)) {
+        commonKeys.add(t);
       }
       score += 1;
     }
   });
 
-  return { score, commonKeys };
+  return { score, commonKeys: Array.from(commonKeys) };
 }
 
 // Emulate TF-IDF / Persona weighting
