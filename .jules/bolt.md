@@ -4,3 +4,6 @@
 ## 2026-07-09 - Array Sorting with Dates Performance Bottleneck
 **Learning:** `new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()` in `Array.prototype.sort()` results in massive O(N*logN) unnecessary object instantiations and parsing. For large datasets, this severely degrades V8 engine performance (from ~7ms to ~150ms for just 250 items due to hidden GC pauses).
 **Action:** Always pre-calculate parsed timestamps (`pubDateParsed: number`) during the initial data transformation pass when dealing with large arrays that need sorting by date.
+## 2026-07-20 - Array.includes() Anti-pattern in NLP Token Matching
+**Learning:** Using `Array.includes()` inside loops for deduplication in NLP token matching (e.g., `calculateAffinity` in `src/server/nexusAlgorithm.ts`) causes an O(N²) performance bottleneck, which degrades algorithm execution speed when processing large numbers of cross-affinity combinations.
+**Action:** Always use a `Set` for tracking common keys and `Set.has()` or `Set.add()` for constant-time O(1) lookups and deduplications to maintain optimal execution speed.
