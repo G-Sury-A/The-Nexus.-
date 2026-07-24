@@ -7,3 +7,6 @@
 ## 2026-07-21 - O(N^2) Bottleneck in NLP Token Matching
 **Learning:** Using `Array.includes()` within loops for deduplicating matched NLP tokens (e.g., in `calculateAffinity`) leads to an O(N^2) complexity bottleneck. When dealing with dynamically generated or large string payloads from RSS feeds, this degrades algorithmic processing time significantly.
 **Action:** Always utilize a `Set` to track matched items and use `Set.has()` for constant-time O(1) lookups during frequency or affinity calculations in the backend.
+## 2024-11-20 - O(N) Bottleneck in NLP Sentence Splitting
+**Learning:** Using `nlp(text).sentences().first()` from the `compromise` package within large loops for simple sentence boundary detection introduces a massive O(N) performance bottleneck due to excessive object instantiation and string processing.
+**Action:** Always use native string methods like regex `split(/(?<=[.!?])\s+/)` for simple sentence splitting within large loops to optimize CPU utilization and drastically improve performance.

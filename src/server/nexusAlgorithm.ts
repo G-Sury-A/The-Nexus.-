@@ -256,9 +256,12 @@ export async function generateNexusBriefing(userPrefs: any) {
          link: m.article.link
       });
       
+      // ⚡ Bolt Optimization: Replacing compromise NLP sentence splitting with native regex
+      // split significantly reduces CPU overhead during loop execution, avoiding an O(N) performance bottleneck.
       // Understand what the sentence is about and simplify it for bullets
-      let nlpDoc = nlp(m.article.summary || m.article.title).sentences().first();
-      let bulletText = nlpDoc.out('text').trim();
+      let textSource = m.article.summary || m.article.title;
+      let splitSentences = textSource.split(/(?<=[.!?])\s+/);
+      let bulletText = (splitSentences[0] || textSource).trim();
       let bulletWords = bulletText.split(' ');
       let extremelyShort = bulletWords.length > 12
         ? bulletWords.slice(0, 12).join(' ') + '...'
@@ -267,8 +270,8 @@ export async function generateNexusBriefing(userPrefs: any) {
       bullets.push(`${capitalize(m.subject)} - ${extremelyShort}`);
 
       // Summarize via first sentence heuristic but make it more descriptive for the paragraph
-      const sentences = m.article.summary.split(/(?<=[.!?])\s+/);
-      let crispSentence = sentences.length > 1 ? sentences[0] + ' ' + sentences[1] : sentences[0] || m.article.title;
+      const paragraphSentences = m.article.summary.split(/(?<=[.!?])\s+/);
+      let crispSentence = paragraphSentences.length > 1 ? paragraphSentences[0] + ' ' + paragraphSentences[1] : paragraphSentences[0] || m.article.title;
       crispSentence = crispSentence.trim();
       if (crispSentence && !crispSentence.match(/[.!?]$/)) crispSentence += '.';
 
