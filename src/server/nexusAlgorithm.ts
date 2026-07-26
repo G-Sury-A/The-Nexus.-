@@ -96,9 +96,9 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
 }
 
 // Emulate TF-IDF / Persona weighting
-function scoreAgainstPersona(article: RawArticle, prefTokens: Set<string>): number {
-  const tokens = tokenize(article.title + ' ' + article.summary);
-  const entities = extractEntities(article.title + ' ' + article.summary);
+// ⚡ Bolt Optimization: Accept pre-computed tokens and entities to avoid redundant
+// O(1) cache lookups and string concatenations within the O(N) pool iteration loop.
+function scoreAgainstPersona(tokens: string[], entities: string[], prefTokens: Set<string>): number {
   let score = 0;
   
   tokens.forEach(t => {
@@ -155,8 +155,9 @@ export async function generateNexusBriefing(userPrefs: any) {
 
     pool.forEach(article => {
       const text = article.title + ' ' + article.summary;
+      const tokens = tokenize(text);
       const entities = extractEntities(text);
-      const personaScore = scoreAgainstPersona(article, prefTokens);
+      const personaScore = scoreAgainstPersona(tokens, entities, prefTokens);
 
       // Strict alignment with user preferences
       if (personaScore > 0) {
@@ -174,8 +175,9 @@ export async function generateNexusBriefing(userPrefs: any) {
     if (articleEntities.length === 0) {
        pool.forEach(article => {
          const text = article.title + ' ' + article.summary;
+         const tokens = tokenize(text);
          const entities = extractEntities(text);
-         const personaScore = scoreAgainstPersona(article, prefTokens);
+         const personaScore = scoreAgainstPersona(tokens, entities, prefTokens);
          articleEntities.push({ article, entities, score: personaScore });
          entities.forEach(ent => {
            const weight = prefTokens.has(ent) ? 3 : 1;

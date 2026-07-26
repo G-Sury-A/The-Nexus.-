@@ -10,3 +10,6 @@
 ## 2024-11-20 - O(N) Bottleneck in NLP Sentence Splitting
 **Learning:** Using `nlp(text).sentences().first()` from the `compromise` package within large loops for simple sentence boundary detection introduces a massive O(N) performance bottleneck due to excessive object instantiation and string processing.
 **Action:** Always use native string methods like regex `split(/(?<=[.!?])\s+/)` for simple sentence splitting within large loops to optimize CPU utilization and drastically improve performance.
+## 2024-10-18 - Redundant Computations in Iteration Loops
+**Learning:** Re-computing values via function calls (e.g., `tokenize` and `extractEntities`) that do string concatenation inside an `O(N)` loop creates a performance bottleneck, even if the underlying functions use an O(1) cache. The overhead of string concatenation and map lookups adds up significantly over thousands of iterations.
+**Action:** When iterating over a large dataset, pre-compute values if possible or reuse variables containing already processed results. Modify function signatures to accept pre-computed inputs rather than raw data that requires re-processing on every call.
