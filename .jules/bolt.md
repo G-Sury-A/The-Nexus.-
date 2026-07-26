@@ -13,3 +13,6 @@
 ## 2024-10-18 - Redundant Computations in Iteration Loops
 **Learning:** Re-computing values via function calls (e.g., `tokenize` and `extractEntities`) that do string concatenation inside an `O(N)` loop creates a performance bottleneck, even if the underlying functions use an O(1) cache. The overhead of string concatenation and map lookups adds up significantly over thousands of iterations.
 **Action:** When iterating over a large dataset, pre-compute values if possible or reuse variables containing already processed results. Modify function signatures to accept pre-computed inputs rather than raw data that requires re-processing on every call.
+## 2024-07-26 - Redundant operations in Fallback loops
+**Learning:** Re-computing values via function calls (e.g., \`tokenize\` and \`extractEntities\`) that involve string concatenation inside an \`O(N)\` loop creates a performance bottleneck in worst-case scenarios, such as when user preferences don't match any articles. The overhead of string concatenation and map lookups adds up significantly over thousands of iterations.
+**Action:** When a fallback loop operates on the exact same dataset, pre-calculate the required data in the primary pass and cache the processed entities to avoid redundant expensive NLP string operations if the fallback loop is triggered.
