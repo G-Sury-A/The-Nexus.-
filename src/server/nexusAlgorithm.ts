@@ -153,17 +153,22 @@ export async function generateNexusBriefing(userPrefs: any) {
     const entityFrequency: Record<string, number> = {};
     const articleEntities: { article: RawArticle; entities: string[]; score: number }[] = [];
 
-    pool.forEach(article => {
+    // ⚡ Bolt Optimization: Pre-calculate NLP properties for the entire pool to prevent
+    // redundant string concatenation and cache lookups if the fallback loop is triggered.
+    const processedPool = pool.map(article => {
       const text = article.title + ' ' + article.summary;
       const tokens = tokenize(text);
       const entities = extractEntities(text);
       const personaScore = scoreAgainstPersona(tokens, entities, prefTokens);
+      return { article, entities, score: personaScore };
+    });
 
+    processedPool.forEach(processed => {
       // Strict alignment with user preferences
-      if (personaScore > 0) {
-        articleEntities.push({ article, entities, score: personaScore });
+      if (processed.score > 0) {
+        articleEntities.push(processed);
 
-        entities.forEach(ent => {
+        processed.entities.forEach(ent => {
           // Boost frequency if it matches user persona directly
           const weight = prefTokens.has(ent) ? 3 : 1;
           entityFrequency[ent] = (entityFrequency[ent] || 0) + weight;
@@ -173,13 +178,9 @@ export async function generateNexusBriefing(userPrefs: any) {
 
     // Fallback if no matching articles perfectly aligned
     if (articleEntities.length === 0) {
-       pool.forEach(article => {
-         const text = article.title + ' ' + article.summary;
-         const tokens = tokenize(text);
-         const entities = extractEntities(text);
-         const personaScore = scoreAgainstPersona(tokens, entities, prefTokens);
-         articleEntities.push({ article, entities, score: personaScore });
-         entities.forEach(ent => {
+       processedPool.forEach(processed => {
+         articleEntities.push(processed);
+         processed.entities.forEach(ent => {
            const weight = prefTokens.has(ent) ? 3 : 1;
            entityFrequency[ent] = (entityFrequency[ent] || 0) + weight;
          });
