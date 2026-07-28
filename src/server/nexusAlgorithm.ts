@@ -153,11 +153,17 @@ export async function generateNexusBriefing(userPrefs: any) {
     const entityFrequency: Record<string, number> = {};
     const articleEntities: { article: RawArticle; entities: string[]; score: number }[] = [];
 
+    // ⚡ Bolt Optimization: Cache parsed article data to avoid O(N) duplicate string
+    // concatenation, regex operations, and cache lookups if the fallback loop is triggered.
+    const allParsedArticles: { article: RawArticle; entities: string[]; score: number }[] = [];
+
     pool.forEach(article => {
       const text = article.title + ' ' + article.summary;
       const tokens = tokenize(text);
       const entities = extractEntities(text);
       const personaScore = scoreAgainstPersona(tokens, entities, prefTokens);
+
+      allParsedArticles.push({ article, entities, score: personaScore });
 
       // Strict alignment with user preferences
       if (personaScore > 0) {
@@ -172,14 +178,12 @@ export async function generateNexusBriefing(userPrefs: any) {
     });
 
     // Fallback if no matching articles perfectly aligned
+    // ⚡ Bolt Optimization: Iterate over pre-computed allParsedArticles instead of raw pool.
+    // This reuses parsed tokens/entities/scores and prevents redundant computation overhead.
     if (articleEntities.length === 0) {
-       pool.forEach(article => {
-         const text = article.title + ' ' + article.summary;
-         const tokens = tokenize(text);
-         const entities = extractEntities(text);
-         const personaScore = scoreAgainstPersona(tokens, entities, prefTokens);
-         articleEntities.push({ article, entities, score: personaScore });
-         entities.forEach(ent => {
+       allParsedArticles.forEach(parsed => {
+         articleEntities.push(parsed);
+         parsed.entities.forEach(ent => {
            const weight = prefTokens.has(ent) ? 3 : 1;
            entityFrequency[ent] = (entityFrequency[ent] || 0) + weight;
          });
