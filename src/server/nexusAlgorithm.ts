@@ -6,6 +6,10 @@ const STOP_WORDS = new Set([
   'the', 'is', 'at', 'which', 'on', 'in', 'and', 'a', 'an', 'to', 'for', 'of', 'with', 'by', 'as', 'it', 'that', 'this', 'from', 'but', 'not', 'or', 'are', 'be', 'has', 'have', 'was', 'were', 'will', 'would', 'can', 'could', 'should', 'their', 'they', 'we', 'our', 'what', 'who', 'when', 'where', 'how', 'why', 'its', 'about', 'more', 'new', 'after', 'also', 'over', 'into', 'out', 'up', 'down', 'been', 'some', 'says', 'said', 'all', 'there', 'one', 'two', 'than', 'while'
 ]);
 
+// ⚡ Bolt Optimization: Globally define and use a Set for O(1) lookups instead of recreating
+// the array and performing O(N) Array.includes operations on every iteration of the article processing loop.
+const COMMON_STARTERS = new Set(['The', 'A', 'An', 'This', 'That', 'These', 'Those', 'It', 'He', 'She', 'They', 'We', 'In', 'On', 'At', 'To', 'As', 'For', 'With', 'By', 'From', 'New', 'Major', 'Some', 'Many', 'Any', 'All', 'There', 'Here']);
+
 
 // Bounded Cache to prevent memory leaks during long-running Node.js processes.
 class BoundedCache<K, V> extends Map<K, V> {
@@ -282,10 +286,9 @@ export async function generateNexusBriefing(userPrefs: any) {
       if (crispSentence && !crispSentence.match(/[.!?]$/)) crispSentence += '.';
 
       // Lowercase if it's a common starter word, otherwise keep as is for proper nouns
-      const commonStarters = ['The', 'A', 'An', 'This', 'That', 'These', 'Those', 'It', 'He', 'She', 'They', 'We', 'In', 'On', 'At', 'To', 'As', 'For', 'With', 'By', 'From', 'New', 'Major', 'Some', 'Many', 'Any', 'All', 'There', 'Here'];
       let firstWord = crispSentence.split(' ')[0] || '';
       let formattedSentence = crispSentence;
-      if (commonStarters.includes(firstWord)) {
+      if (COMMON_STARTERS.has(firstWord)) {
         formattedSentence = crispSentence.charAt(0).toLowerCase() + crispSentence.slice(1);
       }
 
