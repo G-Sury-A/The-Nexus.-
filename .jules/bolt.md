@@ -16,3 +16,6 @@
 ## 2024-11-21 - Redundant Computations in Fallback Loops
 **Learning:** In algorithms like `generateNexusBriefing`, if an initial loop processes data and a fallback loop conditionally re-processes the same raw data, it introduces massive O(N) performance overhead (especially with NLP and string operations).
 **Action:** Always pre-calculate and cache the parsed results (e.g. into an array like `allParsedArticles`) during the primary iteration pass, and iterate over that cache if the fallback condition is triggered.
+## 2024-07-30 - Extracting Array Creation and O(N) `.includes` from Loops
+**Learning:** Instantiating static arrays and using `.includes()` (O(N)) inside a tight iteration loop (like `topMatches.forEach` when formatting briefing summaries) creates an invisible performance bottleneck. This CPU overhead compounded when parsing large RSS feeds.
+**Action:** Always hoist static lookup arrays outside of loop contexts, and replace arrays with a `Set` where `Set.has()` provides O(1) constant-time lookup.
