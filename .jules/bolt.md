@@ -16,3 +16,6 @@
 ## 2024-11-21 - Redundant Computations in Fallback Loops
 **Learning:** In algorithms like `generateNexusBriefing`, if an initial loop processes data and a fallback loop conditionally re-processes the same raw data, it introduces massive O(N) performance overhead (especially with NLP and string operations).
 **Action:** Always pre-calculate and cache the parsed results (e.g. into an array like `allParsedArticles`) during the primary iteration pass, and iterate over that cache if the fallback condition is triggered.
+## 2024-12-05 - Static Arrays Inside Loops
+**Learning:** Instantiating a static array (e.g. `commonStarters`) inside a loop (like `topMatches.forEach`) and using `Array.includes()` for lookups leads to redundant memory allocations and O(N) lookup complexity per iteration.
+**Action:** Always hoist static lookup arrays outside of loops and convert them to a `Set` to allow O(1) constant-time lookups via `Set.has()`.
