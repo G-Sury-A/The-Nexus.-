@@ -16,3 +16,6 @@
 ## 2024-11-21 - Redundant Computations in Fallback Loops
 **Learning:** In algorithms like `generateNexusBriefing`, if an initial loop processes data and a fallback loop conditionally re-processes the same raw data, it introduces massive O(N) performance overhead (especially with NLP and string operations).
 **Action:** Always pre-calculate and cache the parsed results (e.g. into an array like `allParsedArticles`) during the primary iteration pass, and iterate over that cache if the fallback condition is triggered.
+## 2024-11-22 - O(N^2) Bottleneck from Array.includes inside map/filter loops
+**Learning:** Instantiating static arrays and utilizing `Array.includes()` for lookups within large iterative blocks (e.g., inside `.forEach` or `.filter`) introduces significant, hidden O(N) overhead which compounds to O(N^2) performance degradation during large dataset iteration (like RSS payloads).
+**Action:** Always hoist static arrays into module-level `Set` objects to prevent redundant memory allocation. Always convert arrays to `Set` objects before applying filter operations requiring membership lookups to achieve constant-time O(1) performance using `Set.has()`.

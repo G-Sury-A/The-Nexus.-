@@ -6,6 +6,10 @@ const STOP_WORDS = new Set([
   'the', 'is', 'at', 'which', 'on', 'in', 'and', 'a', 'an', 'to', 'for', 'of', 'with', 'by', 'as', 'it', 'that', 'this', 'from', 'but', 'not', 'or', 'are', 'be', 'has', 'have', 'was', 'were', 'will', 'would', 'can', 'could', 'should', 'their', 'they', 'we', 'our', 'what', 'who', 'when', 'where', 'how', 'why', 'its', 'about', 'more', 'new', 'after', 'also', 'over', 'into', 'out', 'up', 'down', 'been', 'some', 'says', 'said', 'all', 'there', 'one', 'two', 'than', 'while'
 ]);
 
+// ⚡ Bolt Optimization: Hoisted common starters to a Set to prevent redundant
+// static array instantiation and enable O(1) lookups during the summary loop
+const COMMON_STARTERS = new Set(['The', 'A', 'An', 'This', 'That', 'These', 'Those', 'It', 'He', 'She', 'They', 'We', 'In', 'On', 'At', 'To', 'As', 'For', 'With', 'By', 'From', 'New', 'Major', 'Some', 'Many', 'Any', 'All', 'There', 'Here']);
+
 
 // Bounded Cache to prevent memory leaks during long-running Node.js processes.
 class BoundedCache<K, V> extends Map<K, V> {
@@ -224,8 +228,11 @@ export async function generateNexusBriefing(userPrefs: any) {
 
     // Connect previous category visually (Causal Links)
     if (selectedChain.length > 0) {
+      // ⚡ Bolt Optimization: Converting categoryTopTopics to a Set before filtering
+      // provides O(1) constant-time lookup, avoiding the O(N^2) bottleneck from Array.includes()
+      const categoryTopTopicsSet = new Set(categoryTopTopics);
       // Find intersection between previous category topics and this category topics
-      const intersection = previousCategoryTopics.filter(t => categoryTopTopics.includes(t));
+      const intersection = previousCategoryTopics.filter(t => categoryTopTopicsSet.has(t));
       
       if (intersection.length > 0) {
         const topOverlap = intersection[0];
@@ -282,10 +289,9 @@ export async function generateNexusBriefing(userPrefs: any) {
       if (crispSentence && !crispSentence.match(/[.!?]$/)) crispSentence += '.';
 
       // Lowercase if it's a common starter word, otherwise keep as is for proper nouns
-      const commonStarters = ['The', 'A', 'An', 'This', 'That', 'These', 'Those', 'It', 'He', 'She', 'They', 'We', 'In', 'On', 'At', 'To', 'As', 'For', 'With', 'By', 'From', 'New', 'Major', 'Some', 'Many', 'Any', 'All', 'There', 'Here'];
       let firstWord = crispSentence.split(' ')[0] || '';
       let formattedSentence = crispSentence;
-      if (commonStarters.includes(firstWord)) {
+      if (COMMON_STARTERS.has(firstWord)) {
         formattedSentence = crispSentence.charAt(0).toLowerCase() + crispSentence.slice(1);
       }
 
