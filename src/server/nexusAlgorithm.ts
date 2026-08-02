@@ -1,6 +1,16 @@
 import { globalCorpus, RawArticle, fetchAllFeeds } from './fetcher.js';
 import nlp from 'compromise';
 
+// ⚡ Bolt Optimization: Hoisted out of loops for performance
+const COMMON_STARTERS = new Set(['The', 'A', 'An', 'This', 'That', 'These', 'Those', 'It', 'He', 'She', 'They', 'We', 'In', 'On', 'At', 'To', 'As', 'For', 'With', 'By', 'From', 'New', 'Major', 'Some', 'Many', 'Any', 'All', 'There', 'Here']);
+
+const TRANSITIONS = [
+  ["Leading the shifts, recent developments around", "indicate that"],
+  ["Concurrently, looking at", "we see"],
+  ["Furthermore, in the context of", "the focus is on"],
+  ["Additionally, regarding", "reports suggest"]
+];
+
 // Basic list of stop words to filter out grammatical glue
 const STOP_WORDS = new Set([
   'the', 'is', 'at', 'which', 'on', 'in', 'and', 'a', 'an', 'to', 'for', 'of', 'with', 'by', 'as', 'it', 'that', 'this', 'from', 'but', 'not', 'or', 'are', 'be', 'has', 'have', 'was', 'were', 'will', 'would', 'can', 'could', 'should', 'their', 'they', 'we', 'our', 'what', 'who', 'when', 'where', 'how', 'why', 'its', 'about', 'more', 'new', 'after', 'also', 'over', 'into', 'out', 'up', 'down', 'been', 'some', 'says', 'said', 'all', 'there', 'one', 'two', 'than', 'while'
@@ -225,7 +235,8 @@ export async function generateNexusBriefing(userPrefs: any) {
     // Connect previous category visually (Causal Links)
     if (selectedChain.length > 0) {
       // Find intersection between previous category topics and this category topics
-      const intersection = previousCategoryTopics.filter(t => categoryTopTopics.includes(t));
+      const categoryTopTopicsSet = new Set(categoryTopTopics);
+      const intersection = previousCategoryTopics.filter(t => categoryTopTopicsSet.has(t));
       
       if (intersection.length > 0) {
         const topOverlap = intersection[0];
@@ -247,13 +258,6 @@ export async function generateNexusBriefing(userPrefs: any) {
     // Crisp, personalized paragraph stitched together
     const userVibe = userPrefs.notificationStyle === 'Executive' ? 'a high-level, executive' : 'a detailed, tailored';
     let compositeSummary = `Based on high-frequency themes across top ${pool.length} updates, the primary drivers in ${category} are ${formattedTopics.length > 0 ? formattedTopics.map(t => `**${t}**`).join(', ') : 'overall trends'}. ${userPrefs.notificationStyle === 'Executive' ? 'Here is the high-level' : 'Here is the tailored'} breakdown aligned with your ${userPrefs.jobIndustry} focus: `;
-
-    const transitions = [
-      ["Leading the shifts, recent developments around", "indicate that"],
-      ["Concurrently, looking at", "we see"],
-      ["Furthermore, in the context of", "the focus is on"],
-      ["Additionally, regarding", "reports suggest"]
-    ];
 
     topMatches.forEach((m, idx) => {
       sourceArticles.push({
@@ -282,16 +286,15 @@ export async function generateNexusBriefing(userPrefs: any) {
       if (crispSentence && !crispSentence.match(/[.!?]$/)) crispSentence += '.';
 
       // Lowercase if it's a common starter word, otherwise keep as is for proper nouns
-      const commonStarters = ['The', 'A', 'An', 'This', 'That', 'These', 'Those', 'It', 'He', 'She', 'They', 'We', 'In', 'On', 'At', 'To', 'As', 'For', 'With', 'By', 'From', 'New', 'Major', 'Some', 'Many', 'Any', 'All', 'There', 'Here'];
       let firstWord = crispSentence.split(' ')[0] || '';
       let formattedSentence = crispSentence;
-      if (commonStarters.includes(firstWord)) {
+      if (COMMON_STARTERS.has(firstWord)) {
         formattedSentence = crispSentence.charAt(0).toLowerCase() + crispSentence.slice(1);
       }
 
       // Stitch it into the summary rather than adding to bullets
       let displaySubject = `**${capitalize(m.subject)}**`;
-      const transition = transitions[idx % transitions.length];
+      const transition = TRANSITIONS[idx % TRANSITIONS.length];
       
       if (idx === 0) {
         compositeSummary += `${transition[0]} ${displaySubject} ${transition[1]} ${formattedSentence} `;

@@ -16,3 +16,6 @@
 ## 2024-11-21 - Redundant Computations in Fallback Loops
 **Learning:** In algorithms like `generateNexusBriefing`, if an initial loop processes data and a fallback loop conditionally re-processes the same raw data, it introduces massive O(N) performance overhead (especially with NLP and string operations).
 **Action:** Always pre-calculate and cache the parsed results (e.g. into an array like `allParsedArticles`) during the primary iteration pass, and iterate over that cache if the fallback condition is triggered.
+## 2024-11-21 - Instantiating Static Arrays and Using `.includes()` Inside Loops
+**Learning:** Instantiating static arrays or using `Array.includes()` inside loops (e.g., `calculateAffinity` or `topMatches.forEach` in `src/server/nexusAlgorithm.ts`) causes performance bottlenecks.
+**Action:** Always hoist static lookup arrays outside loops and use a `Set` with `Set.has()` for O(1) constant-time lookups.
