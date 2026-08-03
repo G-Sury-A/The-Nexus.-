@@ -19,3 +19,6 @@
 ## 2024-11-21 - Instantiating Static Arrays and Using `.includes()` Inside Loops
 **Learning:** Instantiating static arrays or using `Array.includes()` inside loops (e.g., `calculateAffinity` or `topMatches.forEach` in `src/server/nexusAlgorithm.ts`) causes performance bottlenecks.
 **Action:** Always hoist static lookup arrays outside loops and use a `Set` with `Set.has()` for O(1) constant-time lookups.
+## 2024-11-21 - O(N^2) Bottleneck in matchingArticles Array Filtering
+**Learning:** Using `Array.includes()` for entity matching inside an `.filter()` iteration across an array of objects creates an O(N^2) performance bottleneck, negatively impacting the efficiency of cross-referencing algorithms like `generateNexusBriefing`.
+**Action:** Always pre-calculate `entitiesSet: Set<string>` alongside `entities` during the initial object instantiation pass. When filtering inside a loop, use `Set.has()` instead of `Array.includes()` for constant-time O(1) membership lookups to improve CPU performance.
