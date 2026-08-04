@@ -33,8 +33,20 @@ export function NexusWeb({ briefing, prefs }: NexusWebProps) {
     };
     
     updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      // ⚡ Bolt Optimization: Debounce resize events to prevent excessive React state updates
+      // and expensive spring physics recalculations during window resizing.
+      timeoutId = setTimeout(updateDimensions, 100);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   const nodes = briefing.chain;

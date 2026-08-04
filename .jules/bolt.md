@@ -22,3 +22,6 @@
 ## 2024-11-21 - O(N^2) Bottleneck in matchingArticles Array Filtering
 **Learning:** Using `Array.includes()` for entity matching inside an `.filter()` iteration across an array of objects creates an O(N^2) performance bottleneck, negatively impacting the efficiency of cross-referencing algorithms like `generateNexusBriefing`.
 **Action:** Always pre-calculate `entitiesSet: Set<string>` alongside `entities` during the initial object instantiation pass. When filtering inside a loop, use `Set.has()` instead of `Array.includes()` for constant-time O(1) membership lookups to improve CPU performance.
+## 2024-11-21 - Debouncing Window Resize Events in React
+**Learning:** Attaching standard synchronous event listeners (e.g. `updateDimensions`) directly to the `window`'s `resize` event causes excessive React state updates and forces re-renders on every single pixel adjustment. When a component contains expensive SVG renders or spring physics calculations, this directly impacts frontend performance and causes jank.
+**Action:** Always wrap `window.addEventListener('resize', ...)` callbacks with a basic debounce wrapper using `setTimeout` (and `clearTimeout`) in `useEffect` when dealing with UI layouts requiring heavy calculations.
