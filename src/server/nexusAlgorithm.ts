@@ -161,11 +161,11 @@ export async function generateNexusBriefing(userPrefs: any) {
 
     // 1. Frequency Analysis: Gather entities from all 50 articles
     const entityFrequency: Record<string, number> = {};
-    const articleEntities: { article: RawArticle; entities: string[]; score: number }[] = [];
+    const articleEntities: { article: RawArticle; entities: string[]; entitiesSet: Set<string>; score: number }[] = [];
 
     // ⚡ Bolt Optimization: Cache parsed article data to avoid O(N) duplicate string
     // concatenation, regex operations, and cache lookups if the fallback loop is triggered.
-    const allParsedArticles: { article: RawArticle; entities: string[]; score: number }[] = [];
+    const allParsedArticles: { article: RawArticle; entities: string[]; entitiesSet: Set<string>; score: number }[] = [];
 
     pool.forEach(article => {
       const text = article.title + ' ' + article.summary;
@@ -173,11 +173,12 @@ export async function generateNexusBriefing(userPrefs: any) {
       const entities = extractEntities(text);
       const personaScore = scoreAgainstPersona(tokens, entities, prefTokens);
 
-      allParsedArticles.push({ article, entities, score: personaScore });
+      const entitiesSet = new Set(entities);
+      allParsedArticles.push({ article, entities, entitiesSet, score: personaScore });
 
       // Strict alignment with user preferences
       if (personaScore > 0) {
-        articleEntities.push({ article, entities, score: personaScore });
+        articleEntities.push({ article, entities, entitiesSet, score: personaScore });
 
         entities.forEach(ent => {
           // Boost frequency if it matches user persona directly
@@ -215,7 +216,7 @@ export async function generateNexusBriefing(userPrefs: any) {
     topSubjects.forEach(subject => {
       // Find highest scored article containing this subject
       const matchingArticles = articleEntities
-        .filter(ae => ae.entities.includes(subject) && !usedArticleIds.has(ae.article.id))
+        .filter(ae => ae.entitiesSet.has(subject) && !usedArticleIds.has(ae.article.id))
         .sort((a, b) => b.score - a.score);
       
       if (matchingArticles.length > 0) {
