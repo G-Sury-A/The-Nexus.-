@@ -213,15 +213,19 @@ export async function generateNexusBriefing(userPrefs: any) {
     const topMatches: { article: RawArticle; subject: string }[] = [];
     const usedArticleIds = new Set<string>();
 
+    // ⚡ Bolt Optimization: Pre-sort the array once outside the loop instead of calling
+    // .filter().sort() repeatedly inside the loop. This reduces the algorithmic complexity
+    // from O(M * N log N) to O(N log N + M * N) and avoids allocating new arrays via .filter().
+    articleEntities.sort((a, b) => b.score - a.score);
+
     topSubjects.forEach(subject => {
       // Find highest scored article containing this subject
-      const matchingArticles = articleEntities
-        .filter(ae => ae.entitiesSet.has(subject) && !usedArticleIds.has(ae.article.id))
-        .sort((a, b) => b.score - a.score);
+      // Since articleEntities is pre-sorted, the first match found is the highest scored one.
+      const match = articleEntities.find(ae => ae.entitiesSet.has(subject) && !usedArticleIds.has(ae.article.id));
       
-      if (matchingArticles.length > 0) {
-        topMatches.push({ article: matchingArticles[0].article, subject });
-        usedArticleIds.add(matchingArticles[0].article.id);
+      if (match) {
+        topMatches.push({ article: match.article, subject });
+        usedArticleIds.add(match.article.id);
       }
     });
 

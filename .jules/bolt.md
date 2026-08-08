@@ -25,3 +25,6 @@
 ## 2024-11-21 - Debouncing Window Resize Events in React
 **Learning:** Attaching standard synchronous event listeners (e.g. `updateDimensions`) directly to the `window`'s `resize` event causes excessive React state updates and forces re-renders on every single pixel adjustment. When a component contains expensive SVG renders or spring physics calculations, this directly impacts frontend performance and causes jank.
 **Action:** Always wrap `window.addEventListener('resize', ...)` callbacks with a basic debounce wrapper using `setTimeout` (and `clearTimeout`) in `useEffect` when dealing with UI layouts requiring heavy calculations.
+## 2024-11-21 - O(M * N log N) Bottleneck in Sorting Inside Loops
+**Learning:** Calling `.filter().sort()` inside an iterative loop (e.g., `topSubjects.forEach` over `articleEntities`) creates an O(M * N log N) performance bottleneck, as well as redundant object allocation for the filtered array.
+**Action:** Always pre-sort arrays by score outside iterative loops if possible, and use `.find()` inside the loop for O(N) first-match lookups instead of repeatedly filtering and sorting.
