@@ -62,11 +62,24 @@ function extractEntities(text: string): string[] {
   const orgs = doc.organizations().out('array');
   const people = doc.people().out('array');
   const places = doc.places().out('array');
-  const nouns = doc.match('#Noun').out('array').filter((n: string) => n.length > 5);
   
-  // Combine all entities, normalize to lowercase to improve matching initially, but keep casing for display
-  const allEntities = [...topics, ...orgs, ...people, ...places, ...nouns].map((e: string) => e.replace(/[^\w\s-]/g, '').trim());
-  const result = Array.from(new Set(allEntities)).filter(e => e.length > 3);
+  // ⚡ Bolt Optimization: Eliminate chained array allocations by using a single-pass Set insertion.
+  // This prevents 5 intermediate array allocations per parsed article.
+  const uniqueEntities = new Set<string>();
+  const addEntities = (arr: string[], minLength: number = 3) => {
+    for (let i = 0; i < arr.length; i++) {
+      const e = arr[i].replace(/[^\w\s-]/g, '').trim();
+      if (e.length > minLength) uniqueEntities.add(e);
+    }
+  };
+
+  addEntities(topics);
+  addEntities(orgs);
+  addEntities(people);
+  addEntities(places);
+  addEntities(doc.match('#Noun').out('array'), 5);
+
+  const result = Array.from(uniqueEntities);
   entityCache.set(text, result);
   return result;
 }

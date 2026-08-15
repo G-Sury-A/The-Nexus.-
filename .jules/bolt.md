@@ -29,3 +29,6 @@
 ## 2026-08-12 - O(M * N log N) Bottleneck in Array Filtering inside Loops
 **Learning:** Using `.filter().sort()` inside an iterative loop (e.g., across `topSubjects`) on a large array of objects (like `articleEntities`) creates a massive O(M * N log N) performance bottleneck due to continuous new array allocations and re-sorting during every iteration.
 **Action:** Always pre-sort arrays by score once before the loop (making it O(N log N)), and use `.find()` inside the loop for constant-time O(N) first-match lookups instead of allocating new arrays via `.filter().sort()`.
+## 2024-11-21 - Chained Array Allocations in NLP Extraction
+**Learning:** Chaining array methods like `.map().filter()` and spread operators `[...a, ...b]` inside highly iterative operations (like NLP entity extraction) creates massive unnecessary intermediate array allocations, triggering frequent Garbage Collection (GC) pauses.
+**Action:** Always use a single-pass iteration with a helper function to process raw arrays and insert directly into a `Set` to prevent excessive GC thrashing and improve performance.
