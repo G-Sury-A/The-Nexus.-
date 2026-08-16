@@ -29,3 +29,6 @@
 ## 2026-08-12 - O(M * N log N) Bottleneck in Array Filtering inside Loops
 **Learning:** Using `.filter().sort()` inside an iterative loop (e.g., across `topSubjects`) on a large array of objects (like `articleEntities`) creates a massive O(M * N log N) performance bottleneck due to continuous new array allocations and re-sorting during every iteration.
 **Action:** Always pre-sort arrays by score once before the loop (making it O(N log N)), and use `.find()` inside the loop for constant-time O(N) first-match lookups instead of allocating new arrays via `.filter().sort()`.
+## 2024-11-21 - O(N) Bottleneck from Array methods inside tight loops
+**Learning:** Chaining array methods like `.map().filter()` along with spread operators (`[...a, ...b]`) inside highly iterative loops creates unnecessary intermediate array allocations and causes Garbage Collection (GC) pauses that degrade overall throughput.
+**Action:** Always replace chained array operations in hot loops with a single-pass iteration mechanism (such as an inline `processAndAdd` helper) that directly inserts valid entries into a `Set` to avoid intermediate object allocation overhead.
