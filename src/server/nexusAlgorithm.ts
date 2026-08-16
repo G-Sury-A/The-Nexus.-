@@ -62,11 +62,30 @@ function extractEntities(text: string): string[] {
   const orgs = doc.organizations().out('array');
   const people = doc.people().out('array');
   const places = doc.places().out('array');
-  const nouns = doc.match('#Noun').out('array').filter((n: string) => n.length > 5);
+  const nouns = doc.match('#Noun').out('array');
   
-  // Combine all entities, normalize to lowercase to improve matching initially, but keep casing for display
-  const allEntities = [...topics, ...orgs, ...people, ...places, ...nouns].map((e: string) => e.replace(/[^\w\s-]/g, '').trim());
-  const result = Array.from(new Set(allEntities)).filter(e => e.length > 3);
+  // ⚡ Bolt Optimization: Use single-pass iteration with a helper function to insert directly into a Set
+  // instead of chaining array methods (.map().filter()) and spread operators ([...a, ...b]) which
+  // create unnecessary intermediate array allocations and GC pauses.
+  const uniqueEntities = new Set<string>();
+  const processAndAdd = (arr: string[], minLength: number = 0) => {
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i].length > minLength) {
+        const e = arr[i].replace(/[^\w\s-]/g, '').trim();
+        if (e.length > 3) {
+          uniqueEntities.add(e);
+        }
+      }
+    }
+  };
+
+  processAndAdd(topics);
+  processAndAdd(orgs);
+  processAndAdd(people);
+  processAndAdd(places);
+  processAndAdd(nouns, 5);
+
+  const result = Array.from(uniqueEntities);
   entityCache.set(text, result);
   return result;
 }
