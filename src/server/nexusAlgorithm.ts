@@ -202,9 +202,10 @@ export async function generateNexusBriefing(userPrefs: any) {
     }
 
     // 2. Identify Top 3 Frequent Subjects
-    const sortedEntities = Object.entries(entityFrequency)
-      .sort((a, b) => b[1] - a[1])
-      .map(entry => entry[0]);
+    // ⚡ Bolt Optimization: Use Object.keys().sort() instead of Object.entries().sort().map()
+    // to avoid unnecessary multi-dimensional array allocations and improve sorting performance.
+    const sortedEntities = Object.keys(entityFrequency)
+      .sort((a, b) => entityFrequency[b] - entityFrequency[a]);
     
     const topSubjects = sortedEntities.slice(0, 3);
     const categoryTopTopics = sortedEntities.slice(0, 10); // Broader context for connections
