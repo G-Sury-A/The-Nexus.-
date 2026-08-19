@@ -62,11 +62,33 @@ function extractEntities(text: string): string[] {
   const orgs = doc.organizations().out('array');
   const people = doc.people().out('array');
   const places = doc.places().out('array');
-  const nouns = doc.match('#Noun').out('array').filter((n: string) => n.length > 5);
+  const nouns = doc.match('#Noun').out('array');
   
   // Combine all entities, normalize to lowercase to improve matching initially, but keep casing for display
-  const allEntities = [...topics, ...orgs, ...people, ...places, ...nouns].map((e: string) => e.replace(/[^\w\s-]/g, '').trim());
-  const result = Array.from(new Set(allEntities)).filter(e => e.length > 3);
+  // ⚡ Bolt Optimization: Use a single-pass Set insertion to prevent multiple intermediate array allocations from spread/map/filter.
+  const resultSet = new Set<string>();
+
+  const processAndAdd = (items: string[], rawLengthRequirement: number = 0) => {
+    for (let i = 0; i < items.length; i++) {
+      const e = items[i];
+      if (!e) continue;
+      // Preserve original logic: nouns must pass a raw length check > 5 before cleaning
+      if (rawLengthRequirement > 0 && e.length <= rawLengthRequirement) continue;
+
+      const cleaned = e.replace(/[^\w\s-]/g, '').trim();
+      if (cleaned.length > 3) {
+        resultSet.add(cleaned);
+      }
+    }
+  };
+
+  processAndAdd(topics);
+  processAndAdd(orgs);
+  processAndAdd(people);
+  processAndAdd(places);
+  processAndAdd(nouns, 5); // Nouns require raw length > 5
+
+  const result = Array.from(resultSet);
   entityCache.set(text, result);
   return result;
 }
