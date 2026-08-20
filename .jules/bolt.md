@@ -29,3 +29,6 @@
 ## 2026-08-12 - O(M * N log N) Bottleneck in Array Filtering inside Loops
 **Learning:** Using `.filter().sort()` inside an iterative loop (e.g., across `topSubjects`) on a large array of objects (like `articleEntities`) creates a massive O(M * N log N) performance bottleneck due to continuous new array allocations and re-sorting during every iteration.
 **Action:** Always pre-sort arrays by score once before the loop (making it O(N log N)), and use `.find()` inside the loop for constant-time O(N) first-match lookups instead of allocating new arrays via `.filter().sort()`.
+## 2024-11-21 - Short-circuiting Array Match Checking
+**Learning:** Using `.filter()[0]` to extract the first matched element across an array always results in scanning the entire array and allocating intermediate arrays, creating unnecessary overhead.
+**Action:** Use `.find()` instead of `.filter()[0]` when only the first matching element is needed to short-circuit array iteration and avoid unnecessary allocations.
