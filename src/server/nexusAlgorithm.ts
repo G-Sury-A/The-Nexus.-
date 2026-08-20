@@ -243,10 +243,12 @@ export async function generateNexusBriefing(userPrefs: any) {
     if (selectedChain.length > 0) {
       // Find intersection between previous category topics and this category topics
       const categoryTopTopicsSet = new Set(categoryTopTopics);
-      const intersection = previousCategoryTopics.filter(t => categoryTopTopicsSet.has(t));
+      // ⚡ Bolt Optimization: Use .find() instead of .filter()[0] when only the first match is needed.
+      // This short-circuits the array iteration as soon as a match is found and avoids allocating a new array,
+      // improving performance when evaluating category overlaps.
+      const topOverlap = previousCategoryTopics.find(t => categoryTopTopicsSet.has(t));
       
-      if (intersection.length > 0) {
-        const topOverlap = intersection[0];
+      if (topOverlap) {
         selectedChain[selectedChain.length - 1].causalLinkToNext = 
           `High impact: We detected significant crossover regarding '${topOverlap}', seamlessly linking the momentum into ${category.toLowerCase()}.`;
       } else {
