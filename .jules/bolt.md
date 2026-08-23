@@ -33,3 +33,6 @@
 ## 2024-11-21 - GC Pause Bottleneck from Array Spreading and Chaining
 **Learning:** Using chained array methods (e.g., `.map().filter()`) and spread operators (`[...a, ...b]`) inside highly iterative loops (like `extractEntities` which runs on every article summary) creates unnecessary intermediate array allocations, leading to Garbage Collection (GC) pauses that degrade CPU performance by ~30% on large texts.
 **Action:** Always replace spread operators and `.map().filter()` chains with a single-pass iteration helper function that inserts directly into a `Set` when dealing with iterative NLP parsing or similar high-frequency string processing tasks.
+## 2024-05-19 - Use .find() over .filter()[0]
+**Learning:** Found an O(N) array allocation overhead from using `.filter()[0]` to get the first match from an array within a hot loop in `src/server/nexusAlgorithm.ts`.
+**Action:** Always prefer `.find()` over `.filter()[0]` to short-circuit array iterations and avoid unnecessary array allocations when only searching for the first element.
