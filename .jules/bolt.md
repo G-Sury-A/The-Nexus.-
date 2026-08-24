@@ -33,3 +33,6 @@
 ## 2024-11-21 - GC Pause Bottleneck from Array Spreading and Chaining
 **Learning:** Using chained array methods (e.g., `.map().filter()`) and spread operators (`[...a, ...b]`) inside highly iterative loops (like `extractEntities` which runs on every article summary) creates unnecessary intermediate array allocations, leading to Garbage Collection (GC) pauses that degrade CPU performance by ~30% on large texts.
 **Action:** Always replace spread operators and `.map().filter()` chains with a single-pass iteration helper function that inserts directly into a `Set` when dealing with iterative NLP parsing or similar high-frequency string processing tasks.
+## 2024-11-21 - O(N) Array Filter vs Find Bottleneck
+**Learning:** Using `.filter()` and extracting the 0th element instead of using `.find()` inside a condition creates an unnecessary array allocation and iteration when searching for a single matching item, resulting in minor performance degradation.
+**Action:** Always use `.find()` to get the first match in an array so it can short-circuit the execution rather than iterating over the entire array with `.filter()`.
