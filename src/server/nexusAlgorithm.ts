@@ -62,14 +62,19 @@ function extractEntities(text: string): string[] {
   const orgs = doc.organizations().out('array');
   const people = doc.people().out('array');
   const places = doc.places().out('array');
-  const nouns = doc.match('#Noun').out('array').filter((n: string) => n.length > 5);
+  // ⚡ Bolt Optimization: Removed `.filter((n: string) => n.length > 5)` to eliminate
+  // O(N) intermediate array allocation and GC pauses. The length constraint is now handled
+  // within the `addEntities` helper loop to preserve functionality exactly.
+  const nouns = doc.match('#Noun').out('array');
   
   // ⚡ Bolt Optimization: Replacing spread operators and `.map().filter()` chains with a single-pass
   // helper function inserting directly into a `Set` eliminates intermediate array allocations and GC pauses.
   // Expected Impact: Improves CPU performance of entity extraction by ~30% for large texts.
   const uniqueEntities = new Set<string>();
-  const addEntities = (arr: string[]) => {
+  const addEntities = (arr: string[], minRawLength: number = 0) => {
     for (let i = 0; i < arr.length; i++) {
+      // Enforce raw length constraint before any cleaning to match original behavior
+      if (arr[i].length <= minRawLength) continue;
       const cleaned = arr[i].replace(/[^\w\s-]/g, '').trim();
       if (cleaned.length > 3) {
         uniqueEntities.add(cleaned);
@@ -81,7 +86,7 @@ function extractEntities(text: string): string[] {
   addEntities(orgs);
   addEntities(people);
   addEntities(places);
-  addEntities(nouns);
+  addEntities(nouns, 5);
 
   const result = Array.from(uniqueEntities);
   entityCache.set(text, result);
