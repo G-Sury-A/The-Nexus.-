@@ -36,3 +36,6 @@
 ## 2024-11-21 - O(N) Array Filter vs Find Bottleneck
 **Learning:** Using `.filter()` and extracting the 0th element instead of using `.find()` inside a condition creates an unnecessary array allocation and iteration when searching for a single matching item, resulting in minor performance degradation.
 **Action:** Always use `.find()` to get the first match in an array so it can short-circuit the execution rather than iterating over the entire array with `.filter()`.
+## 2024-11-21 - Intermediate Array Allocation in extractEntities
+**Learning:** Avoid using intermediate `.filter()` calls on arrays before passing them to loops in high-frequency functions (e.g., `extractEntities`). Using `.filter((n: string) => n.length > 5)` on the `nouns` array creates an unnecessary intermediate array allocation and Garbage Collection (GC) overhead.
+**Action:** Evaluate logic and constraints (like string length) directly within the iteration helper (like `addEntities`) to prevent unnecessary O(N) memory allocations and reduce Garbage Collection (GC) overhead.
