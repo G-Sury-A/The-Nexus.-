@@ -17,6 +17,18 @@ const STEPS = [
   'Delivery Preferences'
 ];
 
+const SelectionButton = React.memo(({ active, onClick, children }: any) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-3 rounded-lg border text-left flex items-center justify-between transition-all ${
+      active ? 'border-primary bg-blue-50/10 ring-2 ring-blue-500/20 text-blue-400' : 'border-zinc-800 hover:border-zinc-600 text-zinc-300'
+    }`}
+  >
+    <span className="font-medium">{children}</span>
+    {active && <Check className="w-4 h-4" />}
+  </button>
+));
+
 export function Onboarding({ onComplete }: OnboardingProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [prefs, setPrefs] = useState<UserPreferences>({
@@ -69,18 +81,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       default: return true;
     }
   };
-
-  const SelectionButton = ({ active, onClick, children }: any) => (
-    <button
-      onClick={onClick}
-      className={`px-4 py-3 rounded-lg border text-left flex items-center justify-between transition-all ${
-        active ? 'border-primary bg-blue-50/10 ring-2 ring-blue-500/20 text-blue-400' : 'border-zinc-800 hover:border-zinc-600 text-zinc-300'
-      }`}
-    >
-      <span className="font-medium">{children}</span>
-      {active && <Check className="w-4 h-4" />}
-    </button>
-  );
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 font-sans">
