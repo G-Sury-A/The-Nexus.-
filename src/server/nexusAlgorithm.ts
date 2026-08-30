@@ -43,7 +43,18 @@ function tokenize(text: string): string[] {
   if (tokenCache.has(text)) return tokenCache.get(text)!;
   // Lowercase, remove punctuation, split by space
   const words = text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
-  const result = words.filter(w => w.length > 3 && !STOP_WORDS.has(w));
+
+  // ⚡ Bolt Optimization: Replacing intermediate .filter() array allocation
+  // with a direct push to result array prevents unnecessary O(N) memory
+  // allocations and reduces Garbage Collection (GC) overhead during high-frequency tokenization.
+  const result: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    if (w.length > 3 && !STOP_WORDS.has(w)) {
+      result.push(w);
+    }
+  }
+
   tokenCache.set(text, result);
   return result;
 }
