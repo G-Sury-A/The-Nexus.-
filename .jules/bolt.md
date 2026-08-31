@@ -42,3 +42,6 @@
 ## 2024-11-21 - Extract and Memoize Component from Inside Another Component
 **Learning:** Defining a React component (e.g. `SelectionButton`) inside the body of another component (e.g. `Onboarding`) is a severe anti-pattern. Because the inner component function is re-created on every render, React sees a completely new component reference each time. This forces React to unmount and remount the DOM nodes instead of updating them, causing massive DOM thrashing, layout recalculations, and Garbage Collection (GC) pauses.
 **Action:** Always define React components outside of other components, and use `React.memo` to wrap list item components that depend only on primitive props (like `active`) to prevent them from re-rendering unnecessarily when sibling options are toggled.
+## 2024-11-22 - GC Pause Bottleneck from Array Filtering
+**Learning:** Using intermediate `.filter()` calls on arrays before passing them to loops in high-frequency string processing functions like `tokenize` creates unnecessary intermediate array allocations, leading to Garbage Collection (GC) pauses that degrade CPU performance.
+**Action:** Always evaluate logic and constraints directly within a single-pass iteration using a `for` loop to push elements into the result array instead of relying on functional array methods that allocate intermediate memory.
