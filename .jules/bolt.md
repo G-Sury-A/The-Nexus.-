@@ -45,3 +45,7 @@
 ## 2025-03-05 - Avoid .filter() for GC efficiency in High-Frequency String Processing
 **Learning:** Using functional array methods like `.filter()` creates intermediate arrays, causing unnecessary Garbage Collection (GC) overhead when processing a large volume of strings in high-frequency functions like `tokenize`.
 **Action:** Replace `.filter()` with a single-pass `for` loop that pushes valid elements directly into the final `result` array to minimize intermediate allocations and GC pauses in high-frequency string processing tasks.
+
+## 2025-03-05 - React.memo Invalidation with Inline Arrays and Functions
+**Learning:** Defining inline static arrays (e.g., `['Technology', 'Finance']`) inside the render body or passing inline arrow functions (e.g., `onClick={() => updatePref('jobIndustry', ind)}`) to child components breaks `React.memo`. These references change on every render, invalidating the memoization and causing unnecessary re-renders across all items in list components.
+**Action:** Always hoist static arrays to file-level constants and use `React.useCallback` combined with stable props (like `prefKey`, `prefValue`) to pass callbacks into memoized child components.

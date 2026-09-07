@@ -17,17 +17,36 @@ const STEPS = [
   'Delivery Preferences'
 ];
 
-const SelectionButton = React.memo(({ active, onClick, children }: any) => (
-  <button
-    onClick={onClick}
-    className={`px-4 py-3 rounded-lg border text-left flex items-center justify-between transition-all ${
-      active ? 'border-primary bg-blue-50/10 ring-2 ring-blue-500/20 text-blue-400' : 'border-zinc-800 hover:border-zinc-600 text-zinc-300'
-    }`}
-  >
-    <span className="font-medium">{children}</span>
-    {active && <Check className="w-4 h-4" />}
-  </button>
-));
+// ⚡ Bolt Optimization: Hoisting static arrays outside the component prevents
+// React from re-allocating new array references on every render, which otherwise
+// triggers unnecessary re-renders in child components mapped over these lists.
+const INDUSTRIES = ['Technology', 'Finance', 'Healthcare', 'Education', 'Manufacturing', 'Creative Arts'];
+const SPORTS = ['Football/Soccer', 'Basketball', 'Tennis', 'Motorsport', 'Esports', 'Cricket'];
+const ENTERTAINMENT = ['Movies & TV', 'Gaming', 'Music', 'Literature', 'Theater & Arts', 'Pop Culture'];
+const SOCIETY = ['Technology & Ethics', 'Environment', 'Economy & Class', 'Urban Development', 'Public Health', 'Human Rights'];
+const REGIONS = ['North America', 'Europe', 'Asia-Pacific', 'Middle East', 'Latin America', 'Africa'];
+const STYLES: NotificationStyle[] = ['Bullets', 'Narrative', 'Data-driven'];
+
+// ⚡ Bolt Optimization: Accept prefKey and prefValue props so that we can invoke the callback
+// without relying on an inline arrow function from the parent. This helps maintain stable
+// callback references and prevents unnecessary re-renders in large list components.
+const SelectionButton = React.memo(({ active, onClick, children, prefKey, prefValue }: any) => {
+  const handleClick = React.useCallback(() => {
+    onClick(prefKey, prefValue);
+  }, [onClick, prefKey, prefValue]);
+
+  return (
+    <button
+      onClick={handleClick}
+      className={`px-4 py-3 rounded-lg border text-left flex items-center justify-between transition-all ${
+        active ? 'border-primary bg-blue-50/10 ring-2 ring-blue-500/20 text-blue-400' : 'border-zinc-800 hover:border-zinc-600 text-zinc-300'
+      }`}
+    >
+      <span className="font-medium">{children}</span>
+      {active && <Check className="w-4 h-4" />}
+    </button>
+  );
+});
 
 export function Onboarding({ onComplete }: OnboardingProps) {
   const [stepIndex, setStepIndex] = useState(0);
@@ -54,11 +73,14 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     }
   };
 
-  const updatePref = (key: keyof UserPreferences, value: any) => {
+  // ⚡ Bolt Optimization: Use useCallback so the function references remain stable.
+  // This is passed as a prop to `React.memo` components, which would otherwise invalidate
+  // and re-render if the callback changes on every parent render.
+  const updatePref = React.useCallback((key: keyof UserPreferences, value: any) => {
     setPrefs(p => ({ ...p, [key]: value }));
-  };
+  }, []);
 
-  const toggleArrayPref = (key: keyof UserPreferences, value: string) => {
+  const toggleArrayPref = React.useCallback((key: keyof UserPreferences, value: string) => {
     setPrefs(p => {
       const current = p[key] as string[];
       if (current.includes(value)) {
@@ -67,7 +89,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         return { ...p, [key]: [...current, value] };
       }
     });
-  };
+  }, []);
 
   const isStepValid = () => {
     switch (stepIndex) {
@@ -120,11 +142,13 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               <h2 className="text-2xl font-light">1. Your World of Work</h2>
               <p className="text-zinc-400">Which industry impacts you the most?</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                {['Technology', 'Finance', 'Healthcare', 'Education', 'Manufacturing', 'Creative Arts'].map(ind => (
+                {INDUSTRIES.map(ind => (
                   <SelectionButton 
                     key={ind} 
                     active={prefs.jobIndustry === ind} 
-                    onClick={() => updatePref('jobIndustry', ind)}
+                    onClick={updatePref}
+                    prefKey="jobIndustry"
+                    prefValue={ind}
                   >
                     {ind}
                   </SelectionButton>
@@ -138,11 +162,13 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               <h2 className="text-2xl font-light">2. Passions & Sports</h2>
               <p className="text-zinc-400">Select the sports you follow (select multiple).</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                {['Football/Soccer', 'Basketball', 'Tennis', 'Motorsport', 'Esports', 'Cricket'].map(sport => (
+                {SPORTS.map(sport => (
                   <SelectionButton 
                     key={sport} 
                     active={prefs.favoriteSports.includes(sport)} 
-                    onClick={() => toggleArrayPref('favoriteSports', sport)}
+                    onClick={toggleArrayPref}
+                    prefKey="favoriteSports"
+                    prefValue={sport}
                   >
                     {sport}
                   </SelectionButton>
@@ -156,11 +182,13 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               <h2 className="text-2xl font-light">3. Entertainment</h2>
               <p className="text-zinc-400">What do you enjoy in your downtime?</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                {['Movies & TV', 'Gaming', 'Music', 'Literature', 'Theater & Arts', 'Pop Culture'].map(ent => (
+                {ENTERTAINMENT.map(ent => (
                   <SelectionButton 
                     key={ent} 
                     active={prefs.entertainmentInterests.includes(ent)} 
-                    onClick={() => toggleArrayPref('entertainmentInterests', ent)}
+                    onClick={toggleArrayPref}
+                    prefKey="entertainmentInterests"
+                    prefValue={ent}
                   >
                     {ent}
                   </SelectionButton>
@@ -174,11 +202,13 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               <h2 className="text-2xl font-light">4. Society & Culture</h2>
               <p className="text-zinc-400">Which societal movements or topics matter to you?</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                {['Technology & Ethics', 'Environment', 'Economy & Class', 'Urban Development', 'Public Health', 'Human Rights'].map(soc => (
+                {SOCIETY.map(soc => (
                   <SelectionButton 
                     key={soc} 
                     active={prefs.societyFocus.includes(soc)} 
-                    onClick={() => toggleArrayPref('societyFocus', soc)}
+                    onClick={toggleArrayPref}
+                    prefKey="societyFocus"
+                    prefValue={soc}
                   >
                     {soc}
                   </SelectionButton>
@@ -192,11 +222,13 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               <h2 className="text-2xl font-light">5. Global Perspective</h2>
               <p className="text-zinc-400">Which region's geopolitics affect you the most?</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                {['North America', 'Europe', 'Asia-Pacific', 'Middle East', 'Latin America', 'Africa'].map(reg => (
+                {REGIONS.map(reg => (
                   <SelectionButton 
                     key={reg} 
                     active={prefs.region === reg} 
-                    onClick={() => updatePref('region', reg)}
+                    onClick={updatePref}
+                    prefKey="region"
+                    prefValue={reg}
                   >
                     {reg}
                   </SelectionButton>
@@ -223,11 +255,13 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               <div className="pt-4 space-y-2">
                 <label className="text-sm text-zinc-500">Reading Style</label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {(['Bullets', 'Narrative', 'Data-driven'] as NotificationStyle[]).map(style => (
+                  {STYLES.map(style => (
                     <SelectionButton 
                       key={style} 
                       active={prefs.notificationStyle === style} 
-                      onClick={() => updatePref('notificationStyle', style)}
+                      onClick={updatePref}
+                      prefKey="notificationStyle"
+                      prefValue={style}
                     >
                       {style}
                     </SelectionButton>
