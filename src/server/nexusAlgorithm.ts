@@ -115,22 +115,22 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
   let score = 0;
   
   // Higher weight for shared entities (People, places, orgs)
-  entitiesA.forEach(t => {
+  for (const t of entitiesA) {
     if (entitiesB.has(t)) {
       commonKeysSet.add(t);
       score += 3; // NLP Entity Match is stronger
     }
-  });
+  }
 
   // Fallback to basic token matching
-  tokensA.forEach(t => {
+  for (const t of tokensA) {
     if (tokensB.has(t)) {
       if (!commonKeysSet.has(t)) {
         commonKeysSet.add(t);
       }
       score += 1;
     }
-  });
+  }
 
   return { score, commonKeys: Array.from(commonKeysSet) };
 }
