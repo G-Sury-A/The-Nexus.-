@@ -141,13 +141,15 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
 function scoreAgainstPersona(tokens: string[], entities: string[], prefTokens: Set<string>): number {
   let score = 0;
   
-  tokens.forEach(t => {
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
     if (prefTokens.has(t)) score += 2; // Preferences have higher weight
-  });
+  }
   
-  entities.forEach(e => {
+  for (let i = 0; i < entities.length; i++) {
+    const e = entities[i];
     if (prefTokens.has(e)) score += 4; // Entity match with persona is very strong
-  });
+  }
   
   return score;
 }
@@ -197,7 +199,8 @@ export async function generateNexusBriefing(userPrefs: any) {
     // concatenation, regex operations, and cache lookups if the fallback loop is triggered.
     const allParsedArticles: { article: RawArticle; entities: string[]; entitiesSet: Set<string>; score: number }[] = [];
 
-    pool.forEach(article => {
+    for (let pIdx = 0; pIdx < pool.length; pIdx++) {
+      const article = pool[pIdx];
       const text = article.title + ' ' + article.summary;
       const tokens = tokenize(text);
       const entities = extractEntities(text);
@@ -210,25 +213,28 @@ export async function generateNexusBriefing(userPrefs: any) {
       if (personaScore > 0) {
         articleEntities.push({ article, entities, entitiesSet, score: personaScore });
 
-        entities.forEach(ent => {
+        for (let eIdx = 0; eIdx < entities.length; eIdx++) {
+          const ent = entities[eIdx];
           // Boost frequency if it matches user persona directly
           const weight = prefTokens.has(ent) ? 3 : 1;
           entityFrequency[ent] = (entityFrequency[ent] || 0) + weight;
-        });
+        }
       }
-    });
+    }
 
     // Fallback if no matching articles perfectly aligned
     // ⚡ Bolt Optimization: Iterate over pre-computed allParsedArticles instead of raw pool.
     // This reuses parsed tokens/entities/scores and prevents redundant computation overhead.
     if (articleEntities.length === 0) {
-       allParsedArticles.forEach(parsed => {
+       for (let aIdx = 0; aIdx < allParsedArticles.length; aIdx++) {
+         const parsed = allParsedArticles[aIdx];
          articleEntities.push(parsed);
-         parsed.entities.forEach(ent => {
+         for (let eIdx = 0; eIdx < parsed.entities.length; eIdx++) {
+           const ent = parsed.entities[eIdx];
            const weight = prefTokens.has(ent) ? 3 : 1;
            entityFrequency[ent] = (entityFrequency[ent] || 0) + weight;
-         });
-       });
+         }
+       }
     }
 
     // 2. Identify Top 3 Frequent Subjects
@@ -249,7 +255,8 @@ export async function generateNexusBriefing(userPrefs: any) {
     // and sorting them in every iteration of the topSubjects loop.
     articleEntities.sort((a, b) => b.score - a.score);
 
-    topSubjects.forEach(subject => {
+    for (let sIdx = 0; sIdx < topSubjects.length; sIdx++) {
+      const subject = topSubjects[sIdx];
       // Find highest scored article containing this subject
       // ⚡ Bolt Optimization: Use .find() for O(N) first-match lookup instead of
       // .filter().sort() which is O(N log N)
@@ -260,13 +267,15 @@ export async function generateNexusBriefing(userPrefs: any) {
         topMatches.push({ article: matchingArticle.article, subject });
         usedArticleIds.add(matchingArticle.article.id);
       }
-    });
+    }
 
     // Fallback if we didn't find enough matches (e.g. poor entity extraction)
     if (topMatches.length === 0 && articleEntities.length > 0) {
-       articleEntities.slice(0, 3).forEach(ae => {
+       const sliceLimit = Math.min(3, articleEntities.length);
+       for (let aIdx = 0; aIdx < sliceLimit; aIdx++) {
+         const ae = articleEntities[aIdx];
          topMatches.push({ article: ae.article, subject: ae.entities[0] || 'General Update' });
-       });
+       }
     }
 
     // Connect previous category visually (Causal Links)
