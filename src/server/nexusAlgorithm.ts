@@ -138,16 +138,18 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
 // Emulate TF-IDF / Persona weighting
 // ⚡ Bolt Optimization: Accept pre-computed tokens and entities to avoid redundant
 // O(1) cache lookups and string concatenations within the O(N) pool iteration loop.
+// ⚡ Bolt Optimization: Use traditional `for` loops instead of `Array.prototype.forEach()`
+// to minimize execution time and garbage collection overhead in high-frequency iterative algorithms.
 function scoreAgainstPersona(tokens: string[], entities: string[], prefTokens: Set<string>): number {
   let score = 0;
   
-  tokens.forEach(t => {
-    if (prefTokens.has(t)) score += 2; // Preferences have higher weight
-  });
+  for (let i = 0; i < tokens.length; i++) {
+    if (prefTokens.has(tokens[i])) score += 2; // Preferences have higher weight
+  }
   
-  entities.forEach(e => {
-    if (prefTokens.has(e)) score += 4; // Entity match with persona is very strong
-  });
+  for (let i = 0; i < entities.length; i++) {
+    if (prefTokens.has(entities[i])) score += 4; // Entity match with persona is very strong
+  }
   
   return score;
 }
