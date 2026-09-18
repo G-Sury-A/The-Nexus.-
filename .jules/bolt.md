@@ -48,3 +48,6 @@
 ## 2025-03-05 - Avoid Inline Arrays and Functions to Preserve React.memo
 **Learning:** Passing inline arrow functions (e.g. `onClick={() => updatePref('region', reg)}`) or redefining static arrays in a React component's render body forces new memory references on every single render. This immediately invalidates `React.memo` wrappers on child components (like `SelectionButton`), causing unnecessary DOM thrashing, layout recalculations, and Garbage Collection (GC) pauses as React constantly remounts/updates identical UI elements.
 **Action:** Always extract static configuration arrays to file-level constants, and pass stable reference functions via `useCallback` along with descriptive props (like `prefKey` and `value`) to memoized child components to ensure they do not re-render unnecessarily when unrelated state changes.
+## 2025-03-05 - Avoid .forEach() for GC efficiency in High-Frequency String Processing
+**Learning:** To minimize execution time and garbage collection overhead in high-frequency iterative algorithms (e.g., scoring arrays), use traditional `for` loops (e.g., `for (let i = 0; i < arr.length; i++)`) instead of `Array.prototype.forEach()` to prevent continuous callback function allocation.
+**Action:** Replace `Array.prototype.forEach()` with a traditional `for` loop in high-frequency algorithms to improve performance.
