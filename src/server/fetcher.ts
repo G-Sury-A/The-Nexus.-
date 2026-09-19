@@ -82,7 +82,8 @@ export async function fetchAllFeeds() {
         const feed = await parser.parseURL(url);
         const fetchedItems: RawArticle[] = [];
         
-        feed.items.forEach(item => {
+        for (let i = 0; i < feed.items.length; i++) {
+          const item = feed.items[i];
           if (item.title && (item.contentSnippet || item.content)) {
             const pubDate = item.pubDate || new Date().toISOString();
             fetchedItems.push({
@@ -95,7 +96,7 @@ export async function fetchAllFeeds() {
               pubDateParsed: new Date(pubDate).getTime()
             });
           }
-        });
+        }
         return fetchedItems;
       } catch (error) {
         console.error(`[Nexus Fetcher] Failed to fetch feed ${url}:`, error);
