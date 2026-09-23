@@ -115,22 +115,24 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
   let score = 0;
   
   // Higher weight for shared entities (People, places, orgs)
-  entitiesA.forEach(t => {
+  // ⚡ Bolt Optimization: Use traditional for...of loop instead of .forEach()
+  // to avoid continuous callback function allocation and reduce GC overhead.
+  for (const t of entitiesA) {
     if (entitiesB.has(t)) {
       commonKeysSet.add(t);
       score += 3; // NLP Entity Match is stronger
     }
-  });
+  }
 
   // Fallback to basic token matching
-  tokensA.forEach(t => {
+  for (const t of tokensA) {
     if (tokensB.has(t)) {
       if (!commonKeysSet.has(t)) {
         commonKeysSet.add(t);
       }
       score += 1;
     }
-  });
+  }
 
   return { score, commonKeys: Array.from(commonKeysSet) };
 }
@@ -141,13 +143,15 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
 function scoreAgainstPersona(tokens: string[], entities: string[], prefTokens: Set<string>): number {
   let score = 0;
   
-  tokens.forEach(t => {
-    if (prefTokens.has(t)) score += 2; // Preferences have higher weight
-  });
+  // ⚡ Bolt Optimization: Use traditional for loop instead of .forEach()
+  // to avoid continuous callback function allocation and reduce GC overhead.
+  for (let i = 0; i < tokens.length; i++) {
+    if (prefTokens.has(tokens[i])) score += 2; // Preferences have higher weight
+  }
   
-  entities.forEach(e => {
-    if (prefTokens.has(e)) score += 4; // Entity match with persona is very strong
-  });
+  for (let i = 0; i < entities.length; i++) {
+    if (prefTokens.has(entities[i])) score += 4; // Entity match with persona is very strong
+  }
   
   return score;
 }
@@ -197,7 +201,10 @@ export async function generateNexusBriefing(userPrefs: any) {
     // concatenation, regex operations, and cache lookups if the fallback loop is triggered.
     const allParsedArticles: { article: RawArticle; entities: string[]; entitiesSet: Set<string>; score: number }[] = [];
 
-    pool.forEach(article => {
+    // ⚡ Bolt Optimization: Use traditional for loop instead of .forEach()
+    // to avoid continuous callback function allocation and reduce GC overhead.
+    for (let j = 0; j < pool.length; j++) {
+      const article = pool[j];
       const text = article.title + ' ' + article.summary;
       const tokens = tokenize(text);
       const entities = extractEntities(text);
@@ -210,25 +217,28 @@ export async function generateNexusBriefing(userPrefs: any) {
       if (personaScore > 0) {
         articleEntities.push({ article, entities, entitiesSet, score: personaScore });
 
-        entities.forEach(ent => {
+        for (let k = 0; k < entities.length; k++) {
+          const ent = entities[k];
           // Boost frequency if it matches user persona directly
           const weight = prefTokens.has(ent) ? 3 : 1;
           entityFrequency[ent] = (entityFrequency[ent] || 0) + weight;
-        });
+        }
       }
-    });
+    }
 
     // Fallback if no matching articles perfectly aligned
     // ⚡ Bolt Optimization: Iterate over pre-computed allParsedArticles instead of raw pool.
     // This reuses parsed tokens/entities/scores and prevents redundant computation overhead.
     if (articleEntities.length === 0) {
-       allParsedArticles.forEach(parsed => {
+       for (let j = 0; j < allParsedArticles.length; j++) {
+         const parsed = allParsedArticles[j];
          articleEntities.push(parsed);
-         parsed.entities.forEach(ent => {
+         for (let k = 0; k < parsed.entities.length; k++) {
+           const ent = parsed.entities[k];
            const weight = prefTokens.has(ent) ? 3 : 1;
            entityFrequency[ent] = (entityFrequency[ent] || 0) + weight;
-         });
-       });
+         }
+       }
     }
 
     // 2. Identify Top 3 Frequent Subjects
@@ -249,7 +259,10 @@ export async function generateNexusBriefing(userPrefs: any) {
     // and sorting them in every iteration of the topSubjects loop.
     articleEntities.sort((a, b) => b.score - a.score);
 
-    topSubjects.forEach(subject => {
+    // ⚡ Bolt Optimization: Use traditional for loop instead of .forEach()
+    // to avoid continuous callback function allocation and reduce GC overhead.
+    for (let j = 0; j < topSubjects.length; j++) {
+      const subject = topSubjects[j];
       // Find highest scored article containing this subject
       // ⚡ Bolt Optimization: Use .find() for O(N) first-match lookup instead of
       // .filter().sort() which is O(N log N)
@@ -260,13 +273,15 @@ export async function generateNexusBriefing(userPrefs: any) {
         topMatches.push({ article: matchingArticle.article, subject });
         usedArticleIds.add(matchingArticle.article.id);
       }
-    });
+    }
 
     // Fallback if we didn't find enough matches (e.g. poor entity extraction)
     if (topMatches.length === 0 && articleEntities.length > 0) {
-       articleEntities.slice(0, 3).forEach(ae => {
+       const slicedEntities = articleEntities.slice(0, 3);
+       for (let j = 0; j < slicedEntities.length; j++) {
+         const ae = slicedEntities[j];
          topMatches.push({ article: ae.article, subject: ae.entities[0] || 'General Update' });
-       });
+       }
     }
 
     // Connect previous category visually (Causal Links)
@@ -297,7 +312,10 @@ export async function generateNexusBriefing(userPrefs: any) {
     const userVibe = userPrefs.notificationStyle === 'Executive' ? 'a high-level, executive' : 'a detailed, tailored';
     let compositeSummary = `Based on high-frequency themes across top ${pool.length} updates, the primary drivers in ${category} are ${formattedTopics.length > 0 ? formattedTopics.map(t => `**${t}**`).join(', ') : 'overall trends'}. ${userPrefs.notificationStyle === 'Executive' ? 'Here is the high-level' : 'Here is the tailored'} breakdown aligned with your ${userPrefs.jobIndustry} focus: `;
 
-    topMatches.forEach((m, idx) => {
+    // ⚡ Bolt Optimization: Use traditional for loop instead of .forEach()
+    // to avoid continuous callback function allocation and reduce GC overhead.
+    for (let idx = 0; idx < topMatches.length; idx++) {
+      const m = topMatches[idx];
       sourceArticles.push({
          title: m.article.title,
          summary: m.article.summary,
@@ -341,7 +359,7 @@ export async function generateNexusBriefing(userPrefs: any) {
       } else {
         compositeSummary += `Lastly, touching upon ${displaySubject}, ${formattedSentence} `;
       }
-    });
+    }
 
     const primaryMatch = topMatches[0]?.article || pool[0];
 
