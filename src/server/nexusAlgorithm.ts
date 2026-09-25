@@ -141,13 +141,15 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
 function scoreAgainstPersona(tokens: string[], entities: string[], prefTokens: Set<string>): number {
   let score = 0;
   
-  tokens.forEach(t => {
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
     if (prefTokens.has(t)) score += 2; // Preferences have higher weight
-  });
+  }
   
-  entities.forEach(e => {
+  for (let i = 0; i < entities.length; i++) {
+    const e = entities[i];
     if (prefTokens.has(e)) score += 4; // Entity match with persona is very strong
-  });
+  }
   
   return score;
 }
@@ -197,7 +199,8 @@ export async function generateNexusBriefing(userPrefs: any) {
     // concatenation, regex operations, and cache lookups if the fallback loop is triggered.
     const allParsedArticles: { article: RawArticle; entities: string[]; entitiesSet: Set<string>; score: number }[] = [];
 
-    pool.forEach(article => {
+    for (let k = 0; k < pool.length; k++) {
+      const article = pool[k];
       const text = article.title + ' ' + article.summary;
       const tokens = tokenize(text);
       const entities = extractEntities(text);
@@ -210,25 +213,28 @@ export async function generateNexusBriefing(userPrefs: any) {
       if (personaScore > 0) {
         articleEntities.push({ article, entities, entitiesSet, score: personaScore });
 
-        entities.forEach(ent => {
+        for (let j = 0; j < entities.length; j++) {
+          const ent = entities[j];
           // Boost frequency if it matches user persona directly
           const weight = prefTokens.has(ent) ? 3 : 1;
           entityFrequency[ent] = (entityFrequency[ent] || 0) + weight;
-        });
+        }
       }
-    });
+    }
 
     // Fallback if no matching articles perfectly aligned
     // ⚡ Bolt Optimization: Iterate over pre-computed allParsedArticles instead of raw pool.
     // This reuses parsed tokens/entities/scores and prevents redundant computation overhead.
     if (articleEntities.length === 0) {
-       allParsedArticles.forEach(parsed => {
+       for (let p = 0; p < allParsedArticles.length; p++) {
+         const parsed = allParsedArticles[p];
          articleEntities.push(parsed);
-         parsed.entities.forEach(ent => {
+         for (let j = 0; j < parsed.entities.length; j++) {
+           const ent = parsed.entities[j];
            const weight = prefTokens.has(ent) ? 3 : 1;
            entityFrequency[ent] = (entityFrequency[ent] || 0) + weight;
-         });
-       });
+         }
+       }
     }
 
     // 2. Identify Top 3 Frequent Subjects
@@ -264,9 +270,11 @@ export async function generateNexusBriefing(userPrefs: any) {
 
     // Fallback if we didn't find enough matches (e.g. poor entity extraction)
     if (topMatches.length === 0 && articleEntities.length > 0) {
-       articleEntities.slice(0, 3).forEach(ae => {
+       const maxFallback = Math.min(3, articleEntities.length);
+       for (let i = 0; i < maxFallback; i++) {
+         const ae = articleEntities[i];
          topMatches.push({ article: ae.article, subject: ae.entities[0] || 'General Update' });
-       });
+       }
     }
 
     // Connect previous category visually (Causal Links)
@@ -297,7 +305,8 @@ export async function generateNexusBriefing(userPrefs: any) {
     const userVibe = userPrefs.notificationStyle === 'Executive' ? 'a high-level, executive' : 'a detailed, tailored';
     let compositeSummary = `Based on high-frequency themes across top ${pool.length} updates, the primary drivers in ${category} are ${formattedTopics.length > 0 ? formattedTopics.map(t => `**${t}**`).join(', ') : 'overall trends'}. ${userPrefs.notificationStyle === 'Executive' ? 'Here is the high-level' : 'Here is the tailored'} breakdown aligned with your ${userPrefs.jobIndustry} focus: `;
 
-    topMatches.forEach((m, idx) => {
+    for (let idx = 0; idx < topMatches.length; idx++) {
+      const m = topMatches[idx];
       sourceArticles.push({
          title: m.article.title,
          summary: m.article.summary,
@@ -341,7 +350,7 @@ export async function generateNexusBriefing(userPrefs: any) {
       } else {
         compositeSummary += `Lastly, touching upon ${displaySubject}, ${formattedSentence} `;
       }
-    });
+    }
 
     const primaryMatch = topMatches[0]?.article || pool[0];
 
