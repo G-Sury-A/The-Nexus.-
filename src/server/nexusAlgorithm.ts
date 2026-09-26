@@ -141,13 +141,18 @@ function calculateAffinity(a: RawArticle, b: RawArticle): { score: number, commo
 function scoreAgainstPersona(tokens: string[], entities: string[], prefTokens: Set<string>): number {
   let score = 0;
   
-  tokens.forEach(t => {
+  // ⚡ Bolt Optimization: Replacing Array.prototype.forEach() with traditional for loops
+  // minimizes Garbage Collection (GC) overhead by preventing continuous callback
+  // function allocation during high-frequency iterative scoring.
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
     if (prefTokens.has(t)) score += 2; // Preferences have higher weight
-  });
+  }
   
-  entities.forEach(e => {
+  for (let i = 0; i < entities.length; i++) {
+    const e = entities[i];
     if (prefTokens.has(e)) score += 4; // Entity match with persona is very strong
-  });
+  }
   
   return score;
 }
